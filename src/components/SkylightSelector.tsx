@@ -1154,6 +1154,11 @@ export default function SkylightSelector() {
         const blindPrice = blind ? (blind.prices[sizeCode] || 0) : 0;
 
         let screenPrice = 0;
+        let zilSizeCode = sizeCode;
+        if (['CK02', 'CK04'].includes(sizeCode)) zilSizeCode = 'CK06';
+        else if (['MK04', 'MK06', 'MK08'].includes(sizeCode)) zilSizeCode = 'MK10';
+        else if (sizeCode === 'SK06') zilSizeCode = 'SK10';
+
         if (selection.selectedInsectScreen) {
             const screenProduct = BLINDS.find(b => b.type === 'accessory' && b.id === 'zil'); // Assuming ZIL is the only screen for now
             if (screenProduct && screenProduct.prices[sizeCode]) {
@@ -1301,7 +1306,7 @@ export default function SkylightSelector() {
                                 {selection.selectedInsectScreen && screenPrice > 0 && (
                                     <div className="flex justify-between text-sm items-start">
                                         <div>
-                                            <div>{getPartnerCode(`ZIL ${sizeCode}`)}</div>
+                                            <div>{getPartnerCode(`ZIL ${zilSizeCode}`)}</div>
                                             <div className="text-muted-foreground mt-0.5">Insect Screen</div>
                                         </div>
                                         <span>${screenPrice}</span>
