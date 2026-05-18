@@ -28,7 +28,7 @@ interface SelectionState {
     selectedBlind: string | null; // Blind ID
     selectedInsectScreen: boolean;
     selectedAddon: string | null;
-    selectedManualControls: string[];
+    selectedManualControl: string | null;
 }
 
 const PRODUCT_TYPE_OPTIONS = [
@@ -116,7 +116,7 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
         selectedBlind: null,
         selectedInsectScreen: false,
         selectedAddon: null,
-        selectedManualControls: [],
+        selectedManualControl: null,
     });
 
     // Helpers to move between steps
@@ -445,15 +445,9 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
         }
     };
 
-    const handleManualControlSelect = (id: string) => {
-        setSelection(prev => {
-            const controls = prev.selectedManualControls || [];
-            if (controls.includes(id)) {
-                return { ...prev, selectedManualControls: controls.filter(c => c !== id) };
-            } else {
-                return { ...prev, selectedManualControls: [...controls, id] };
-            }
-        });
+    const handleManualControlSelect = (id: string | null) => {
+        setSelection(prev => ({ ...prev, selectedManualControl: id }));
+        setTimeout(() => nextStep('summary'), 0);
     };
 
 
@@ -1114,7 +1108,7 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
             <div className="space-y-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {controls.map((control) => {
-                        const isSelected = selection.selectedManualControls?.includes(control.id);
+                        const isSelected = selection.selectedManualControl === control.id;
                         return (
                             <Card
                                 key={control.id}
@@ -1137,11 +1131,17 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
                             </Card>
                         );
                     })}
-                </div>
-                <div className="flex justify-center mt-8">
-                    <Button size="lg" onClick={() => nextStep('summary')} className="w-full md:w-auto md:min-w-[200px]">
-                        Continue to Summary
-                    </Button>
+                    <div className={controls.length % 2 === 0 ? "md:col-span-2 flex justify-center" : ""}>
+                        <Card
+                            className={`cursor-pointer transition-all flex items-center justify-center hover:border-primary ${controls.length % 2 === 0 ? "w-full md:w-[calc(50%-0.5rem)]" : "w-full"}`}
+                            onClick={() => handleManualControlSelect(null)}
+                        >
+                            <CardContent className="py-4 px-6 text-center">
+                                <h3 className="text-base font-semibold">No Manual Control</h3>
+                                <p className="text-xs text-muted-foreground">Proceed without adding manual control</p>
+                            </CardContent>
+                        </Card>
+                    </div>
                 </div>
             </div>
         );
@@ -1311,12 +1311,11 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
 
         // Manual Controls Logic
         let manualControlsPrice = 0;
-        if (selection.selectedManualControls && selection.selectedManualControls.length > 0) {
-            selection.selectedManualControls.forEach(id => {
-                if (id === 'zzz201') manualControlsPrice += 59;
-                if (id === 'zzz212') manualControlsPrice += 59;
-                if (id === 'zct300') manualControlsPrice += 99;
-            });
+        if (selection.selectedManualControl) {
+            const id = selection.selectedManualControl;
+            if (id === 'zzz201') manualControlsPrice = 59;
+            if (id === 'zzz212') manualControlsPrice = 59;
+            if (id === 'zct300') manualControlsPrice = 99;
         }
 
         const total = basePrice + flashingPrice + blindPrice + accessoryPrice + screenPrice + addonPrice + manualControlsPrice;
@@ -1415,7 +1414,8 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
                                         <span>${accessoryPrice}</span>
                                     </div>
                                 )}
-                                {selection.selectedManualControls?.map(controlId => {
+                                {selection.selectedManualControl && (() => {
+                                    const controlId = selection.selectedManualControl;
                                     let code = '';
                                     let name = '';
                                     let price = 0;
@@ -1431,7 +1431,7 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
                                             <span>${price}</span>
                                         </div>
                                     );
-                                })}
+                                })()}
                                 {flashingName.includes('Custom') && (
                                     <div className="flex justify-between text-sm items-start mt-2">
                                         <div className="font-bold text-red-600">
