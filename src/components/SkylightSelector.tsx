@@ -1194,7 +1194,11 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
     const renderSummaryStep = () => {
         const getPartnerCode = (code: string, blockLayout = false) => {
             if (customerId !== 'velux' && customerMapping) {
-                const mapped = customerMapping[code];
+                const cleanCode = code.trim().toUpperCase();
+                const mapped = customerMapping[cleanCode] || 
+                               customerMapping[`${cleanCode} B`] || 
+                               customerMapping[`${cleanCode}B`] || 
+                               customerMapping[cleanCode.replace(/\s*B$/, '')];
                 if (mapped && mapped !== 'Not Available' && mapped !== '#REF!') {
                     return (
                         <>
