@@ -357,7 +357,7 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
         }
         
         if (skipBlinds) {
-            if (selection.openingType === 'manual') {
+            if (selection.openingType === 'manual' && selection.productCategory !== 'roof-window') {
                 nextStep('manual-control');
             } else {
                 nextStep('summary');
@@ -408,7 +408,7 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
         // Actually nextStep just changes 'step' state, so it's fine.
         // But we want the selection to stick.
         setTimeout(() => {
-            if (selection.openingType === 'manual') {
+            if (selection.openingType === 'manual' && selection.productCategory !== 'roof-window') {
                 nextStep('manual-control');
             } else {
                 nextStep('summary');
@@ -421,7 +421,7 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
     };
 
     const handleUpgradesComplete = () => {
-        if (selection.openingType === 'manual') {
+        if (selection.openingType === 'manual' && selection.productCategory !== 'roof-window') {
             nextStep('manual-control');
         } else {
             nextStep('summary');
@@ -543,13 +543,15 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
                 }
             }
             
+            const isSunTunnel = prod.id === 'twr' || prod.id === 'twf' || prod.id === 'tcr';
+            
             setSelection(prev => ({
                 ...prev,
                 selectedProduct: prod.id,
                 openingType: prod.openingType,
                 roofPitch: resolvedPitch as any,
                 roofType: resolvedType as any,
-                sizeCode: null,
+                sizeCode: isSunTunnel ? '0K14' : null,
                 selectedBlind: null
             }));
         }
@@ -569,7 +571,16 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
             return (
                 <button
                     key={m}
-                    onClick={() => selectModelFastForward(m)}
+                    onClick={() => {
+                        selectModelFastForward(m);
+                        if (selection.productCategory === 'sun-tunnel') {
+                            if (m === 'TWR' || m === 'TCR') {
+                                nextStep('addon');
+                            } else {
+                                nextStep('summary');
+                            }
+                        }
+                    }}
                     className={`p-3 border rounded-xl text-center transition-all flex flex-col justify-center items-center h-20 ${isSelected ? 'border-primary bg-primary/5 ring-2 ring-primary' : 'border-border bg-white hover:border-primary/50'}`}
                 >
                     <span className="text-lg font-bold text-foreground">{m}</span>
@@ -627,7 +638,7 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
                     )}
                 </div>
 
-                {product && (
+                {product && selection.productCategory !== 'sun-tunnel' && (
                     <div className="space-y-4 border-t pt-6">
                         <div className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">2. Select Size</div>
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
