@@ -95,12 +95,31 @@ const TRUSS_OPTIONS = [
 ];
 
 
+interface DealerInfo {
+    name: string;
+    url: string;
+}
+
+const DEALER_INFO: Record<string, DealerInfo> = {
+    'no1': { name: 'No.1 Roofing', url: 'https://www.no1roofing.com.au/skylights/' },
+    'bunnings': { name: 'Bunnings', url: 'https://www.bunnings.com.au/brands/v/velux-skylights' },
+    'stratco': { name: 'Stratco', url: 'https://www.stratco.com.au/au/brands/velux/' },
+    'mitre10': { name: 'Mitre 10', url: 'https://www.mitre10.com.au/catalog/category/view/s/velux/id/5809?perPage=24' },
+    'hg': { name: 'Hardware & General', url: 'https://www.hg.com.au/velux/' },
+    'bowens': { name: 'Bowens', url: 'https://www.bowens.com.au/brands/velux/' },
+    'dahlsens': { name: 'Dahlsens', url: 'https://www.dahlsens.com.au/skylights-roof-windows/' },
+    'reece': { name: 'Reece', url: 'https://www.reece.com.au/' },
+};
+
 interface SkylightSelectorProps {
     customerId?: string;
     customerMapping?: Record<string, string> | null;
 }
 
 export default function SkylightSelector({ customerId = 'velux', customerMapping = null }: SkylightSelectorProps) {
+    const dealerInfo = DEALER_INFO[customerId.toLowerCase()];
+    const partnerName = dealerInfo?.name || (customerId !== 'velux' ? customerId.charAt(0).toUpperCase() + customerId.slice(1) : '');
+
     const [step, setStep] = useState<StepId>('product-type');
     const [history, setHistory] = useState<StepId[]>([]);
     const [selection, setSelection] = useState<SelectionState>({
@@ -1615,6 +1634,19 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
                         </div>
                     </div>
 
+                    {customerId !== 'velux' && dealerInfo && (
+                        <div className="mt-8 pt-6 border-t border-gray-100 text-center no-print">
+                            <p className="text-muted-foreground text-sm mb-3">
+                                Click the button below to view our Skylights at {dealerInfo.name}
+                            </p>
+                            <Button asChild className="w-full">
+                                <a href={dealerInfo.url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2">
+                                    View Skylights at {dealerInfo.name}
+                                </a>
+                            </Button>
+                        </div>
+                    )}
+
                     <div className="flex gap-4 mt-8 no-print">
                         <Button variant="outline" onClick={() => handleExportPDF()} className="flex-1">
                             Export Summary
@@ -1662,7 +1694,7 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
                     </div>
                     <div className="h-16 w-px bg-gray-300 shrink-0"></div>
                     <div className="flex-1 flex justify-start pl-4">
-                        <img src={`/${customerId}-logo.png`} alt={customerId} className="h-16 object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                        <img src={`/${customerId}-logo.png`} alt={partnerName} className="h-16 object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                     </div>
                 </div>
             ) : (
