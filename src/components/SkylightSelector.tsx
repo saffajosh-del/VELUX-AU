@@ -291,25 +291,54 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
     // ----------------------------------------------------------------------------
 
     const handleProductTypeSelect = (id: string) => {
-        setSelection(prev => ({ ...prev, productCategory: id as any }));
+        setSelection(prev => {
+            if (prev.productCategory === id) return prev;
+            return {
+                ...prev,
+                productCategory: id as any,
+                roofPitch: null,
+                roofMaterial: null,
+                roofType: null,
+                openingType: null,
+                trussSpacing: null,
+                sizeCode: null,
+                selectedProduct: null,
+                selectedBlind: null,
+                selectedInsectScreen: false,
+                selectedAddon: null,
+                selectedManualControl: null,
+            };
+        });
         nextStep('material');
     };
 
     const handlePitchSelect = (id: string) => {
-        setSelection(prev => ({
-            ...prev,
-            roofPitch: id as any,
-            roofType: id === 'flat' ? 'flat' : prev.roofType
-        }));
+        setSelection(prev => {
+            const newState = {
+                ...prev,
+                roofPitch: id as any,
+                roofType: id === 'flat' ? 'flat' : prev.roofType,
+            };
+            if (prev.roofPitch !== id) {
+                newState.openingType = null;
+                newState.trussSpacing = null;
+                newState.sizeCode = null;
+                newState.selectedProduct = null;
+                newState.selectedBlind = null;
+                newState.selectedManualControl = null;
+                newState.selectedAddon = null;
+            }
+            return newState;
+        });
 
         if (selection.productCategory === 'sun-tunnel') {
             if (id === 'flat') {
-                setSelection(prev => ({ ...prev, selectedProduct: 'tcr', sizeCode: '014', roofType: 'flat' }));
+                setSelection(prev => ({ ...prev, roofPitch: id as any, selectedProduct: 'tcr', sizeCode: '014', roofType: 'flat' }));
                 nextStep('results');
             } else {
                 // Pitched roof
                 if (selection.roofType === 'wide-metal') {
-                    setSelection(prev => ({ ...prev, selectedProduct: 'tcr', sizeCode: '014' }));
+                    setSelection(prev => ({ ...prev, roofPitch: id as any, selectedProduct: 'tcr', sizeCode: '014' }));
                     nextStep('results');
                 } else {
                     nextStep('sun-tunnel-type');
@@ -326,32 +355,83 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
     const handleMaterialSelect = (id: string) => {
         const isWideMetal = id === 'trimdek' || id === 'klip-lok';
         const mappedType = isWideMetal ? 'wide-metal' : 'tiled';
-        setSelection(prev => ({ ...prev, roofMaterial: id as any, roofType: mappedType }));
+        setSelection(prev => {
+            if (prev.roofMaterial === id) return { ...prev, roofType: mappedType };
+            return {
+                ...prev,
+                roofMaterial: id as any,
+                roofType: mappedType,
+                roofPitch: null,
+                openingType: null,
+                trussSpacing: null,
+                sizeCode: null,
+                selectedProduct: null,
+                selectedBlind: null,
+                selectedManualControl: null,
+                selectedAddon: null,
+            };
+        });
         nextStep('pitch');
     };
 
     const handleSunTunnelTypeSelect = (type: 'rigid' | 'flexible') => {
         const productId = type === 'rigid' ? 'twr' : 'twf';
-
-        // Sun Tunnels have fixed size code 0K14 (014)
-        setSelection({ ...selection, selectedProduct: productId, sizeCode: '0K14' });
+        setSelection(prev => {
+            if (prev.selectedProduct === productId) return prev;
+            return {
+                ...prev,
+                selectedProduct: productId,
+                sizeCode: '0K14',
+                selectedAddon: null
+            };
+        });
         nextStep('results');
     };
 
     const handleRoofWindowModelSelect = (model: 'ggl' | 'gpl') => {
-        setSelection({ ...selection, selectedProduct: model });
+        setSelection(prev => {
+            if (prev.selectedProduct === model) return prev;
+            return {
+                ...prev,
+                selectedProduct: model,
+                trussSpacing: null,
+                sizeCode: null,
+                selectedBlind: null,
+            };
+        });
         nextStep('truss');
     };
 
     const handleOpeningSelect = (id: string) => {
-        setSelection({ ...selection, openingType: id as any, orientation: 'portrait' });
+        setSelection(prev => {
+            if (prev.openingType === id) return prev;
+            return {
+                ...prev,
+                openingType: id as any,
+                orientation: 'portrait',
+                trussSpacing: null,
+                sizeCode: null,
+                selectedProduct: null,
+                selectedBlind: null,
+                selectedManualControl: null,
+            };
+        });
         nextStep('truss');
     };
 
     const handleTrussSelect = (spacing: number | 'unsure') => {
-        setSelection({ ...selection, trussSpacing: spacing });
+        setSelection(prev => {
+            if (prev.trussSpacing === spacing) return prev;
+            return {
+                ...prev,
+                trussSpacing: spacing,
+                sizeCode: null,
+                selectedProduct: null,
+                selectedBlind: null,
+                selectedManualControl: null,
+            };
+        });
         if (spacing === 'unsure') {
-            // Route to results step to show grouped options by truss spacing
             nextStep('results');
         } else {
             nextStep('size');
@@ -359,8 +439,18 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
     };
 
     const handleSizeSelect = (code: string) => {
-        const activeProductId = selection.selectedProduct || (validProducts.filter(p => p.compatibleSizes.includes(code))[0]?.id || null);
-        setSelection(prev => ({ ...prev, sizeCode: code, selectedProduct: activeProductId }));
+        let activeProductId = selection.selectedProduct;
+        const validForSize = validProducts.filter(p => p.compatibleSizes.includes(code));
+        if (!activeProductId || !validForSize.some(p => p.id === activeProductId)) {
+            activeProductId = validForSize[0]?.id || null;
+        }
+
+        setSelection(prev => ({
+            ...prev,
+            sizeCode: code,
+            selectedProduct: activeProductId,
+            ...(prev.sizeCode !== code ? { selectedBlind: null, selectedManualControl: null } : {})
+        }));
         
         const isFlat = isFlatRoof || (activeProductId && ['fcm', 'vcm', 'vcs'].includes(activeProductId));
 
