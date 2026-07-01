@@ -1634,7 +1634,7 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
                         </div>
                     </div>
 
-                    {customerId !== 'velux' && dealerInfo && (
+                    {customerId.toLowerCase() === 'no1' && dealerInfo && (
                         <div className="mt-8 pt-6 border-t border-gray-100 text-center no-print">
                             <p className="text-muted-foreground text-sm mb-3">
                                 Click the button below to view our Skylights at {dealerInfo.name}
