@@ -1702,7 +1702,7 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
                             </div>
 
                             <div className="flex justify-between py-4 border-t border-b text-xl font-bold mt-4">
-                                <span>TOTAL ESTIMATE (RRP)</span>
+                                <span>TOTAL ESTIMATE (RRP) (inc. gst)</span>
                                 <span className="text-primary">${total}</span>
                             </div>
                             <p className="text-xs text-muted-foreground mt-2">* Does not include installation</p>

@@ -17,6 +17,13 @@ export interface Product {
     prices: Record<string, number>; // sizeCode -> price
     compatibleSizes: string[];
     image?: string;
+    uValue?: number;
+    shgc?: number;
+    rw?: number;
+    vlt?: number;
+    balRating?: string;
+    hailResistance?: string;
+    daylightArea?: Record<string, number>;
 }
 
 export interface Flashing {
@@ -55,21 +62,21 @@ export const PITCHED_SIZES: Size[] = [
 ];
 
 export const FLAT_SIZES: Size[] = [
-    { code: '1430', width: 460, height: 870, label: '460 x 870' }, // Overall Curb
-    { code: '2222', width: 665, height: 665, label: '665 x 665' },
-    { code: '2230', width: 665, height: 870, label: '665 x 870' },
-    { code: '2234', width: 665, height: 970, label: '665 x 970' },
-    { code: '2246', width: 665, height: 1275, label: '665 x 1275' },
-    { code: '2270', width: 665, height: 1885, label: '665 x 1885' },
-    { code: '3030', width: 870, height: 870, label: '870 x 870' },
-    { code: '3046', width: 870, height: 1275, label: '870 x 1275' },
-    { code: '3055', width: 870, height: 1505, label: '870 x 1505' },
-    { code: '3072', width: 870, height: 1935, label: '870 x 1935' },
-    { code: '3434', width: 970, height: 970, label: '970 x 970' },
-    { code: '3446', width: 970, height: 1275, label: '970 x 1275' },
-    { code: '4622', width: 1275, height: 665, label: '1275 x 665' },
-    { code: '4646', width: 1275, height: 1275, label: '1275 x 1275' },
-    { code: '4672', width: 1275, height: 1935, label: '1275 x 1935' },
+    { code: '1430', width: 368, height: 775, label: '368 x 775' },
+    { code: '2222', width: 572, height: 572, label: '572 x 572' },
+    { code: '2230', width: 572, height: 775, label: '572 x 775' },
+    { code: '2234', width: 572, height: 876, label: '572 x 876' },
+    { code: '2246', width: 572, height: 1181, label: '572 x 1181' },
+    { code: '2270', width: 572, height: 1792, label: '572 x 1792' },
+    { code: '3030', width: 775, height: 775, label: '775 x 775' },
+    { code: '3046', width: 775, height: 1181, label: '775 x 1181' },
+    { code: '3055', width: 775, height: 1410, label: '775 x 1410' },
+    { code: '3072', width: 775, height: 1842, label: '775 x 1842' },
+    { code: '3434', width: 876, height: 876, label: '876 x 876' },
+    { code: '3446', width: 876, height: 1181, label: '876 x 1181' },
+    { code: '4622', width: 1181, height: 572, label: '1181 x 572' },
+    { code: '4646', width: 1181, height: 1181, label: '1181 x 1181' },
+    { code: '4672', width: 1181, height: 1842, label: '1181 x 1842' },
 ];
 
 export const ROOF_WINDOW_SIZES: Size[] = [
@@ -80,6 +87,26 @@ export const ROOF_WINDOW_SIZES: Size[] = [
     { code: 'MK08', width: 780, height: 1400, label: '780 x 1400' },
     { code: 'SK06', width: 1140, height: 1180, label: '1140 x 1180' },
 ];
+
+const PITCHED_DAYLIGHT: Record<string, number> = {
+    'C01': 0.18, 'C04': 0.27, 'C06': 0.33, 'C08': 0.40, 'C12': 0.54,
+    'M02': 0.31, 'M04': 0.41, 'M06': 0.51, 'M08': 0.62, 'S01': 0.45,
+    'S06': 0.85
+};
+
+const ROOF_WINDOW_DAYLIGHT: Record<string, number> = {
+    'CK02': 0.22, 'CK04': 0.29, 'MK04': 0.47, 'MK06': 0.59, 'MK08': 0.72, 'SK06': 0.95
+};
+
+const FLAT_DAYLIGHT: Record<string, number> = {
+    '1430': 0.29, '2222': 0.33, '2230': 0.44, '2234': 0.50, '2246': 0.68, '2270': 1.03,
+    '3030': 0.60, '3046': 0.92, '3055': 1.09, '3072': 1.43, '3434': 0.77, '3446': 1.03,
+    '4622': 0.68, '4646': 1.39, '4672': 2.18
+};
+
+const TUNNEL_DAYLIGHT: Record<string, number> = {
+    '0K14': 0.10, '014': 0.10
+};
 
 export const PRODUCTS: Product[] = [
     // PITCHED ROOF
@@ -95,7 +122,14 @@ export const PRODUCTS: Product[] = [
             'M02': 761, 'M04': 803, 'M06': 909, 'M08': 1017, 'S01': 885,
             'S06': 1056
         },
-        image: '/FS-skylight.jpg'
+        image: '/FS-skylight.jpg',
+        uValue: 2.5,
+        shgc: 0.21,
+        rw: 32,
+        vlt: 0.48,
+        balRating: 'BAL-40',
+        hailResistance: 'Class 4 (Highest)',
+        daylightArea: PITCHED_DAYLIGHT
     },
     {
         id: 'vs',
@@ -108,7 +142,14 @@ export const PRODUCTS: Product[] = [
             'C01': 1271, 'C04': 1292, 'C06': 1381, 'C08': 1451, 'M02': 1451,
             'M04': 1514, 'M06': 1653, 'M08': 1792, 'S01': 1594, 'S06': 2009
         },
-        image: '/VS-skylight.jpg'
+        image: '/VS-skylight.jpg',
+        uValue: 2.5,
+        shgc: 0.21,
+        rw: 32,
+        vlt: 0.48,
+        balRating: 'BAL-40',
+        hailResistance: 'Class 4 (Highest)',
+        daylightArea: PITCHED_DAYLIGHT
     },
     {
         id: 'vse',
@@ -121,7 +162,14 @@ export const PRODUCTS: Product[] = [
             'C01': 2392, 'C04': 2421, 'C06': 2486, 'C08': 2547, 'M04': 2596,
             'M06': 2709, 'M08': 2823, 'S01': 2686, 'S06': 2995
         },
-        image: '/VSE-skylight.jpg'
+        image: '/VSE-skylight.jpg',
+        uValue: 2.5,
+        shgc: 0.21,
+        rw: 32,
+        vlt: 0.48,
+        balRating: 'BAL-40',
+        hailResistance: 'Class 4 (Highest)',
+        daylightArea: PITCHED_DAYLIGHT
     },
     {
         id: 'vss',
@@ -134,7 +182,14 @@ export const PRODUCTS: Product[] = [
             'C01': 2579, 'C04': 2610, 'C06': 2680, 'C08': 2746, 'M02': 2735,
             'M04': 2799, 'M06': 2921, 'M08': 3043, 'S01': 2896, 'S06': 3229
         },
-        image: '/VSS-skylight.png'
+        image: '/VSS-skylight.png',
+        uValue: 2.5,
+        shgc: 0.21,
+        rw: 32,
+        vlt: 0.48,
+        balRating: 'BAL-40',
+        hailResistance: 'Class 4 (Highest)',
+        daylightArea: PITCHED_DAYLIGHT
     },
     // ROOF WINDOWS
     {
@@ -147,7 +202,14 @@ export const PRODUCTS: Product[] = [
         prices: {
             'CK02': 842, 'CK04': 893, 'MK04': 1045, 'MK08': 1277, 'SK06': 1581
         },
-        image: '/GGL-roof-window.png'
+        image: '/GGL-roof-window.png',
+        uValue: 1.3,
+        shgc: 0.31,
+        rw: 34,
+        vlt: 0.64,
+        balRating: 'BAL-40',
+        hailResistance: 'Class 4 (Highest)',
+        daylightArea: ROOF_WINDOW_DAYLIGHT
     },
     {
         id: 'gpl',
@@ -159,7 +221,14 @@ export const PRODUCTS: Product[] = [
         prices: {
             'CK04': 1003, 'MK04': 1153, 'MK06': 1264, 'MK08': 1429, 'SK06': 1665
         },
-        image: '/GPL-roof-window.png'
+        image: '/GPL-roof-window.png',
+        uValue: 1.3,
+        shgc: 0.31,
+        rw: 34,
+        vlt: 0.64,
+        balRating: 'BAL-40',
+        hailResistance: 'Class 4 (Highest)',
+        daylightArea: ROOF_WINDOW_DAYLIGHT
     },
 
     // FLAT ROOF
@@ -170,13 +239,19 @@ export const PRODUCTS: Product[] = [
         roofType: ['flat'],
         openingType: 'fixed',
         compatibleSizes: ['1430', '2222', '2230', '2234', '2246', '2270', '3030', '3046', '3055', '3072', '3434', '3446', '4646', '4672'],
-        // Excluding 4622 as it is not in price list for FCM
         prices: {
             '1430': 379, '2222': 411, '2230': 447, '2234': 473, '2246': 537,
             '2270': 968, '3030': 519, '3046': 659, '3055': 804, '3072': 2041,
             '3434': 591, '3446': 696, '4646': 731, '4672': 2271
         },
-        image: '/FCM-skylight.jpg'
+        image: '/FCM-skylight.jpg',
+        uValue: 2.9,
+        shgc: 0.28,
+        rw: 29,
+        vlt: 0.61,
+        balRating: 'BAL-40',
+        hailResistance: 'Class 4 (Highest)',
+        daylightArea: FLAT_DAYLIGHT
     },
     {
         id: 'vcm',
@@ -189,7 +264,14 @@ export const PRODUCTS: Product[] = [
             '2222': 1342, '2234': 1449, '2246': 1601, '3030': 1678, '3046': 1822,
             '3434': 1753, '4646': 2136
         },
-        image: '/VCM-skylight.jpg'
+        image: '/VCM-skylight.jpg',
+        uValue: 2.9,
+        shgc: 0.24,
+        rw: 31,
+        vlt: 0.55,
+        balRating: 'BAL-40',
+        hailResistance: 'Class 4 (Highest)',
+        daylightArea: FLAT_DAYLIGHT
     },
     {
         id: 'vcs',
@@ -203,6 +285,13 @@ export const PRODUCTS: Product[] = [
             '3434': 3000, '4622': 2946, '4646': 3228
         },
         image: '/VCS-skylight.jpg',
+        uValue: 2.9,
+        shgc: 0.24,
+        rw: 31,
+        vlt: 0.55,
+        balRating: 'BAL-40',
+        hailResistance: 'Class 4 (Highest)',
+        daylightArea: FLAT_DAYLIGHT
     },
     // SUN TUNNELS
     {
@@ -210,12 +299,19 @@ export const PRODUCTS: Product[] = [
         model: 'TWR',
         name: 'Rigid Sun Tunnel (TWR)',
         roofType: ['pitched'],
-        openingType: 'fixed', // Not really opening, but prevents filter issues if generic
+        openingType: 'fixed',
         compatibleSizes: ['0K14'],
         prices: {
             '0K14': 781
         },
-        image: '/TWR-sun-tunnel.jpg'
+        image: '/TWR-sun-tunnel.jpg',
+        uValue: 2.9,
+        shgc: 0.22,
+        rw: 26,
+        vlt: 0.65,
+        balRating: 'BAL-29',
+        hailResistance: 'Class 3',
+        daylightArea: TUNNEL_DAYLIGHT
     },
     {
         id: 'twf',
@@ -227,19 +323,33 @@ export const PRODUCTS: Product[] = [
         prices: {
             '0K14': 482
         },
-        image: '/TWF-sun-tunnel.jpg'
+        image: '/TWF-sun-tunnel.jpg',
+        uValue: 2.9,
+        shgc: 0.22,
+        rw: 26,
+        vlt: 0.65,
+        balRating: 'BAL-29',
+        hailResistance: 'Class 3',
+        daylightArea: TUNNEL_DAYLIGHT
     },
     {
         id: 'tcr',
         model: 'TCR',
         name: 'Sun Tunnel (TCR)',
-        roofType: ['flat', 'pitched'], // Can be used on both per user logic
+        roofType: ['flat', 'pitched'],
         openingType: 'fixed',
         compatibleSizes: ['014'],
         prices: {
             '014': 831
         },
-        image: '/TCR-sun-tunnel.jpg'
+        image: '/TCR-sun-tunnel.jpg',
+        uValue: 2.9,
+        shgc: 0.22,
+        rw: 26,
+        vlt: 0.65,
+        balRating: 'BAL-29',
+        hailResistance: 'Class 3',
+        daylightArea: TUNNEL_DAYLIGHT
     }
 ];
 

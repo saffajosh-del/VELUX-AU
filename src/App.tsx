@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import SkylightSelector from '@/components/SkylightSelector';
+import ArchitectSelector from '@/components/ArchitectSelector';
 
 function App() {
   const [customerMapping, setCustomerMapping] = useState<Record<string, string> | null>(null);
@@ -33,7 +34,11 @@ function App() {
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary/20">
-      <SkylightSelector customerId={customerId} customerMapping={customerMapping} />
+      {customerId === 'spectool' ? (
+        <ArchitectSelector />
+      ) : (
+        <SkylightSelector customerId={customerId} customerMapping={customerMapping} />
+      )}
     </div>
   );
 }
