@@ -99,11 +99,8 @@ export default function ArchitectSelector() {
             if (selection.productCategory === 'sun-tunnel') {
                 return ['twr', 'twf', 'tcr'].includes(p.id);
             }
-            if (selection.productCategory === 'roof-window') {
-                return ['ggl', 'gpl'].includes(p.id);
-            }
             if (selection.productCategory === 'skylight') {
-                return !['ggl', 'gpl', 'twr', 'twf', 'tcr'].includes(p.id);
+                return !['twr', 'twf', 'tcr'].includes(p.id);
             }
             return true;
         });
@@ -160,7 +157,7 @@ export default function ArchitectSelector() {
         }
 
         const isFlat = prod.roofType.includes('flat') && !prod.roofType.includes('pitched');
-        const isWindow = selection.productCategory === 'roof-window';
+        const isWindow = prod.id === 'ggl' || prod.id === 'gpl' || selection.productCategory === 'roof-window';
 
         const sourceList = isWindow 
             ? ROOF_WINDOW_SIZES 
@@ -189,7 +186,7 @@ export default function ArchitectSelector() {
         }
 
         const isFlat = prod.roofType.includes('flat') && !prod.roofType.includes('pitched');
-        const isWindow = selection.productCategory === 'roof-window';
+        const isWindow = prod.id === 'ggl' || prod.id === 'gpl' || selection.productCategory === 'roof-window';
         const sourceList = isWindow ? ROOF_WINDOW_SIZES : (isFlat ? FLAT_SIZES : PITCHED_SIZES);
         return sourceList.find(s => s.code === selection.sizeCode) || null;
     }, [selection.sizeCode, selection.selectedProduct, selection.productCategory]);
@@ -214,6 +211,14 @@ export default function ArchitectSelector() {
             }
         }
 
+        // Insect Screen price
+        if (selection.selectedInsectScreen) {
+            const zil = BLINDS.find(b => b.id === 'zil');
+            if (zil && sizeCode) {
+                basePrice += (zil.prices[sizeCode] || 0);
+            }
+        }
+
         // Accessories price
         selection.selectedAccessories.forEach(accId => {
             const acc = ACCESSORIES.find(a => a.id === accId);
@@ -223,7 +228,7 @@ export default function ArchitectSelector() {
         });
 
         return basePrice;
-    }, [selection.selectedProduct, selection.sizeCode, selection.selectedBlind, selection.selectedAccessories, selection.productCategory, selection.roofPitch]);
+    }, [selection.selectedProduct, selection.sizeCode, selection.selectedBlind, selection.selectedInsectScreen, selection.selectedAccessories, selection.productCategory, selection.roofPitch]);
 
     // Add configured item to schedule
     const handleAddToSchedule = () => {
@@ -315,7 +320,7 @@ export default function ArchitectSelector() {
         if (schedule.length === 0) return;
         
         let csvContent = "data:text/csv;charset=utf-8,";
-        csvContent += "Mark,Model,Description,Size Code,Width (mm),Height (mm),Daylight Area (sqm),Glazing,U-Value,SHGC,Rw (Acoustic),BAL Rating,Accessories,Quantity,Notes";
+        csvContent += "Mark,Model,Description,Size Code,Width (mm),Height (mm),Daylight Area (sqm),Glazing,R-Value,SHGC,Rw (Acoustic),BAL Rating,Accessories,Quantity,Notes";
         if (showPricing) csvContent += ",Unit Price (RRP) (inc. gst),Total Price (RRP) (inc. gst)";
         csvContent += "\n";
 
@@ -342,7 +347,7 @@ export default function ArchitectSelector() {
     const copyMarkdown = () => {
         if (schedule.length === 0) return;
 
-        let md = `| Mark | Model | Size Code | Dimensions (WxH) | Daylight Area | Glazing Spec | U-Value | SHGC | Rw | BAL | Accessories | Qty | Notes |`;
+        let md = `| Mark | Model | Size Code | Dimensions (WxH) | Daylight Area | Glazing Spec | R-Value | SHGC | Rw | BAL | Accessories | Qty | Notes |`;
         if (showPricing) md += ` Unit Price | Total Price |`;
         md += `\n| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |`;
         if (showPricing) md += ` --- | --- |`;
@@ -380,25 +385,45 @@ export default function ArchitectSelector() {
                     </p>
                 </div>
                 
-                <div className="flex items-center gap-3 self-start md:self-auto">
-                    <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => setShowPricing(!showPricing)}
-                        className="flex items-center gap-2 text-xs"
-                    >
-                        {showPricing ? <EyeOff size={14} /> : <Eye size={14} />}
-                        {showPricing ? "Hide Pricing" : "Show Indicative RRP"}
-                    </Button>
-                    <a 
-                        href="https://resources.velux.com.au/architectural-drawings" 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center justify-center rounded-md text-xs font-semibold ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3"
-                    >
-                        <Download size={14} className="mr-2" />
-                        CAD/BIM Portal
-                    </a>
+                <div className="flex flex-col gap-2 items-end self-start md:self-auto">
+                    <div className="flex items-center gap-3">
+                        <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => setShowPricing(!showPricing)}
+                            className="flex items-center gap-2 text-xs"
+                        >
+                            {showPricing ? <EyeOff size={14} /> : <Eye size={14} />}
+                            {showPricing ? "Hide Pricing" : "Show Indicative RRP"}
+                        </Button>
+                        <a 
+                            href="https://resources.velux.com.au/architectural-drawings" 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center justify-center rounded-md text-xs font-semibold ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3"
+                        >
+                            <Download size={14} className="mr-2" />
+                            CAD/BIM Portal
+                        </a>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <a 
+                            href="/CodeMark Skylights.pdf" 
+                            download="CodeMark Skylights.pdf"
+                            className="inline-flex items-center justify-center rounded-md text-xs font-semibold ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3"
+                        >
+                            <Download size={14} className="mr-2" />
+                            Skylight CodeMark
+                        </a>
+                        <a 
+                            href="/CodeMark Roof Windows.pdf" 
+                            download="CodeMark Roof Windows.pdf"
+                            className="inline-flex items-center justify-center rounded-md text-xs font-semibold ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3"
+                        >
+                            <Download size={14} className="mr-2" />
+                            Roof Window CodeMark
+                        </a>
+                    </div>
                 </div>
             </div>
 
@@ -457,10 +482,9 @@ export default function ArchitectSelector() {
                                 </CardTitle>
                                 <CardDescription>Select the architectural system category</CardDescription>
                             </CardHeader>
-                            <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 {[
-                                    { id: 'skylight', title: 'Skylight Systems', desc: 'Double-glazed Pitched / Flat Solutions', icon: <img src="/skylight-icon.png" alt="Skylight" className="w-10 h-10 object-contain" /> },
-                                    { id: 'roof-window', title: 'Roof Windows', desc: 'Dual-action operable systems for high pitches within arms reach.', icon: <img src="/roof-window-icon.png" alt="Roof Window" className="w-10 h-10 object-contain" /> },
+                                    { id: 'skylight', title: 'Skylight Systems', desc: 'Double-glazed Pitched / Flat Solutions (Includes Roof Windows)', icon: <img src="/skylight-icon.png" alt="Skylight" className="w-10 h-10 object-contain" /> },
                                     { id: 'sun-tunnel', title: 'Sun Tunnels', desc: 'Light transmission tubing structures.', icon: <img src="/sun-tunnel-icon.png" alt="Sun Tunnel" className="w-10 h-10 object-contain" /> },
                                 ].map((cat) => {
                                     const isSelected = selection.productCategory === cat.id;
@@ -529,8 +553,7 @@ export default function ArchitectSelector() {
                                             )
                                         },
                                     ].map((pitch) => {
-                                        // Sun tunnel TCR allows both. But GGL / GPL only allow pitched.
-                                        const disabled = selection.productCategory === 'roof-window' && pitch.id === 'flat';
+                                        const disabled = false;
                                         const isSelected = selection.roofPitch === pitch.id;
                                         
                                         return (
@@ -558,7 +581,6 @@ export default function ArchitectSelector() {
                                                 <div className="mt-4">
                                                     <h3 className="font-bold text-sm text-foreground flex items-center justify-between">
                                                         {pitch.title}
-                                                        {disabled && <span className="text-[10px] bg-neutral-100 text-neutral-500 px-1.5 py-0.5 rounded font-normal">Pitched Only</span>}
                                                     </h3>
                                                     <p className="text-xs text-muted-foreground mt-1 leading-normal">{pitch.desc}</p>
                                                 </div>
@@ -594,8 +616,9 @@ export default function ArchitectSelector() {
                                                 key={op.id}
                                                 disabled={!isAvailable}
                                                 onClick={() => {
-                                                    // Find product corresponding to selection
-                                                    const prod = finalProductsList.find(p => p.openingType === op.id) || null;
+                                                    const prod = (selection.productCategory === 'sun-tunnel' || (selection.roofPitch === 'pitched' && op.id === 'manual'))
+                                                        ? null
+                                                        : (finalProductsList.find(p => p.openingType === op.id) || null);
                                                     setSelection({
                                                         ...selection,
                                                         openingType: op.id as any,
@@ -621,53 +644,200 @@ export default function ArchitectSelector() {
                         )}
 
                         {/* Step 4: System Size Codes */}
-                        {selection.openingType && selection.selectedProduct && (
+                        {selection.openingType && (selection.selectedProduct || selection.productCategory === 'sun-tunnel' || (selection.roofPitch === 'pitched' && selection.openingType === 'manual')) && (
                             <Card className="border border-border shadow-sm">
                                 <CardHeader className="pb-4">
                                     <CardTitle className="text-lg font-bold flex items-center gap-2 text-foreground">
                                         <span className="w-6 h-6 rounded-full bg-neutral-100 flex items-center justify-center text-xs text-neutral-500 font-bold border">4</span>
-                                        Standard Sizing Selection
+                                        {selection.productCategory === 'sun-tunnel' ? 'Sun Tunnel Model Selection' : 'Standard Sizing Selection'}
                                     </CardTitle>
-                                    <CardDescription>Select a standard factory-manufactured trim-opening size</CardDescription>
+                                    <CardDescription>
+                                        {selection.productCategory === 'sun-tunnel' 
+                                            ? 'Select a rigid or flexible Sun Tunnel model' 
+                                            : 'Select a standard factory-manufactured trim-opening size'}
+                                    </CardDescription>
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3">
-                                        {availableSizes.map((sz) => {
-                                            const isSelected = selection.sizeCode === sz.code;
-                                            const dlArea = selection.selectedProduct?.daylightArea?.[sz.code] || 0;
-                                            
-                                            return (
-                                                <button
-                                                    key={sz.code}
-                                                    onClick={() => {
-                                                        setSelection({
-                                                            ...selection,
-                                                            sizeCode: sz.code
-                                                        });
-                                                    }}
-                                                    className={`p-3 rounded-lg border text-center transition-all flex flex-col justify-center items-center ${
-                                                        isSelected 
-                                                            ? 'border-primary bg-primary/5 ring-2 ring-primary/20 font-semibold' 
-                                                            : 'border-border bg-card hover:border-neutral-400'
-                                                    }`}
-                                                >
-                                                    <span className="text-sm font-black text-foreground">{sz.code}</span>
-                                                    <span className="text-[11px] text-muted-foreground mt-0.5">{sz.label} mm</span>
-                                                    {dlArea > 0 && (
-                                                        <span className="text-[9px] bg-neutral-100 text-neutral-500 px-1 py-0.5 rounded-full mt-1.5 font-medium tracking-wide">
-                                                            {dlArea.toFixed(2)}m² Light
-                                                        </span>
-                                                    )}
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
+                                    {selection.productCategory === 'sun-tunnel' ? (
+                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                            {[
+                                                { id: 'twr', code: 'TWR', name: 'Rigid Sun Tunnel', dims: '350 × 1700 mm', sizeCode: '0K14' },
+                                                { id: 'twf', code: 'TWF', name: 'Flexible Sun Tunnel', dims: '350 × 2000 mm', sizeCode: '0K14' },
+                                                { id: 'tcr', code: 'TCR', name: 'Flat Roof Rigid Sun Tunnel', dims: '350 × 1150 mm', sizeCode: '014' }
+                                            ].map((st) => {
+                                                const prod = PRODUCTS.find(p => p.id === st.id)!;
+                                                const isSelected = selection.selectedProduct?.id === st.id;
+                                                const dlArea = prod?.daylightArea?.[st.sizeCode] || 0.10;
+
+                                                return (
+                                                    <button
+                                                        key={st.id}
+                                                        onClick={() => {
+                                                            setSelection({
+                                                                ...selection,
+                                                                selectedProduct: prod,
+                                                                sizeCode: st.sizeCode
+                                                            });
+                                                        }}
+                                                        className={`p-4 rounded-xl border text-center transition-all flex flex-col justify-center items-center min-h-[110px] ${
+                                                            isSelected 
+                                                                ? 'border-primary bg-primary/5 ring-2 ring-primary/20 font-semibold' 
+                                                                : 'border-border bg-card hover:border-neutral-400'
+                                                        }`}
+                                                    >
+                                                        <span className="text-base font-black text-foreground">{st.code}</span>
+                                                        <span className="text-xs font-semibold text-neutral-700 mt-0.5">{st.name}</span>
+                                                        <span className="text-[11px] text-muted-foreground mt-1">{st.dims}</span>
+                                                        {dlArea > 0 && (
+                                                            <span className="text-[9px] bg-neutral-100 text-neutral-500 px-2 py-0.5 rounded-full mt-2 font-medium tracking-wide">
+                                                                {dlArea.toFixed(2)}m² Light
+                                                            </span>
+                                                        )}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    ) : selection.roofPitch === 'pitched' && selection.openingType === 'manual' ? (
+                                        <div className="space-y-6">
+                                            <div>
+                                                <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
+                                                    <span>Roof Window Models (In-Reach Dual-Action)</span>
+                                                </div>
+                                                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3">
+                                                    {[
+                                                        { prodId: 'ggl', model: 'GGL', code: 'CK02', label: '550 × 780' },
+                                                        { prodId: 'ggl', model: 'GGL', code: 'CK04', label: '550 × 980' },
+                                                        { prodId: 'ggl', model: 'GGL', code: 'MK04', label: '780 × 980' },
+                                                        { prodId: 'ggl', model: 'GGL', code: 'MK08', label: '780 × 1400' },
+                                                        { prodId: 'ggl', model: 'GGL', code: 'SK06', label: '1140 × 1180' },
+                                                        { prodId: 'gpl', model: 'GPL', code: 'CK04', label: '550 × 980' },
+                                                        { prodId: 'gpl', model: 'GPL', code: 'MK04', label: '780 × 980' },
+                                                        { prodId: 'gpl', model: 'GPL', code: 'MK06', label: '780 × 1180' },
+                                                        { prodId: 'gpl', model: 'GPL', code: 'MK08', label: '780 × 1400' },
+                                                        { prodId: 'gpl', model: 'GPL', code: 'SK06', label: '1140 × 1180' },
+                                                    ].map((item) => {
+                                                        const prod = PRODUCTS.find(p => p.id === item.prodId)!;
+                                                        const isSelected = selection.selectedProduct?.id === item.prodId && selection.sizeCode === item.code;
+                                                        const dlArea = prod?.daylightArea?.[item.code] || 0;
+
+                                                        return (
+                                                            <button
+                                                                key={`${item.model}-${item.code}`}
+                                                                onClick={() => {
+                                                                    setSelection({
+                                                                        ...selection,
+                                                                        selectedProduct: prod,
+                                                                        sizeCode: item.code
+                                                                    });
+                                                                }}
+                                                                className={`p-3 rounded-lg border text-center transition-all flex flex-col justify-center items-center ${
+                                                                    isSelected 
+                                                                        ? 'border-primary bg-primary/5 ring-2 ring-primary/20 font-semibold' 
+                                                                        : 'border-border bg-card hover:border-neutral-400'
+                                                                }`}
+                                                            >
+                                                                <span className="text-xs font-black text-foreground">{item.model} {item.code}</span>
+                                                                <span className="text-[11px] text-muted-foreground mt-0.5">{item.label} mm</span>
+                                                                {dlArea > 0 && (
+                                                                    <span className="text-[9px] bg-neutral-100 text-neutral-500 px-1 py-0.5 rounded-full mt-1.5 font-medium tracking-wide">
+                                                                        {dlArea.toFixed(2)}m² Light
+                                                                    </span>
+                                                                )}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
+                                                    <span>Skylight Models (VS Manual Opening)</span>
+                                                </div>
+                                                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3">
+                                                    {[
+                                                        { prodId: 'vs', model: 'VS', code: 'C01', label: '550 × 700' },
+                                                        { prodId: 'vs', model: 'VS', code: 'C04', label: '550 × 980' },
+                                                        { prodId: 'vs', model: 'VS', code: 'C06', label: '550 × 1180' },
+                                                        { prodId: 'vs', model: 'VS', code: 'C08', label: '550 × 1400' },
+                                                        { prodId: 'vs', model: 'VS', code: 'M02', label: '780 × 780' },
+                                                        { prodId: 'vs', model: 'VS', code: 'M04', label: '780 × 980' },
+                                                        { prodId: 'vs', model: 'VS', code: 'M06', label: '780 × 1180' },
+                                                        { prodId: 'vs', model: 'VS', code: 'M08', label: '780 × 1400' },
+                                                        { prodId: 'vs', model: 'VS', code: 'S01', label: '1140 × 700' },
+                                                        { prodId: 'vs', model: 'VS', code: 'S06', label: '1140 × 1180' },
+                                                    ].map((item) => {
+                                                        const prod = PRODUCTS.find(p => p.id === item.prodId)!;
+                                                        const isSelected = selection.selectedProduct?.id === item.prodId && selection.sizeCode === item.code;
+                                                        const dlArea = prod?.daylightArea?.[item.code] || 0;
+
+                                                        return (
+                                                            <button
+                                                                key={`${item.model}-${item.code}`}
+                                                                onClick={() => {
+                                                                    setSelection({
+                                                                        ...selection,
+                                                                        selectedProduct: prod,
+                                                                        sizeCode: item.code
+                                                                    });
+                                                                }}
+                                                                className={`p-3 rounded-lg border text-center transition-all flex flex-col justify-center items-center ${
+                                                                    isSelected 
+                                                                        ? 'border-primary bg-primary/5 ring-2 ring-primary/20 font-semibold' 
+                                                                        : 'border-border bg-card hover:border-neutral-400'
+                                                                }`}
+                                                            >
+                                                                <span className="text-xs font-black text-foreground">{item.code}</span>
+                                                                <span className="text-[11px] text-muted-foreground mt-0.5">{item.label} mm</span>
+                                                                {dlArea > 0 && (
+                                                                    <span className="text-[9px] bg-neutral-100 text-neutral-500 px-1 py-0.5 rounded-full mt-1.5 font-medium tracking-wide">
+                                                                        {dlArea.toFixed(2)}m² Light
+                                                                    </span>
+                                                                )}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3">
+                                            {availableSizes.map((sz) => {
+                                                const isSelected = selection.sizeCode === sz.code;
+                                                const dlArea = selection.selectedProduct?.daylightArea?.[sz.code] || 0;
+                                                
+                                                return (
+                                                    <button
+                                                        key={sz.code}
+                                                        onClick={() => {
+                                                            setSelection({
+                                                                ...selection,
+                                                                sizeCode: sz.code
+                                                            });
+                                                        }}
+                                                        className={`p-3 rounded-lg border text-center transition-all flex flex-col justify-center items-center ${
+                                                            isSelected 
+                                                                ? 'border-primary bg-primary/5 ring-2 ring-primary/20 font-semibold' 
+                                                                : 'border-border bg-card hover:border-neutral-400'
+                                                        }`}
+                                                    >
+                                                        <span className="text-sm font-black text-foreground">{sz.code}</span>
+                                                        <span className="text-[11px] text-muted-foreground mt-0.5">{sz.label} mm</span>
+                                                        {dlArea > 0 && (
+                                                            <span className="text-[9px] bg-neutral-100 text-neutral-500 px-1 py-0.5 rounded-full mt-1.5 font-medium tracking-wide">
+                                                                {dlArea.toFixed(2)}m² Light
+                                                            </span>
+                                                        )}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
                                 </CardContent>
                             </Card>
                         )}
 
                         {/* Step 5: High-Performance Add-ons */}
-                        {selection.sizeCode && selection.selectedProduct && (
+                        {selection.sizeCode && selection.selectedProduct && selection.productCategory !== 'sun-tunnel' && (
                             <Card className="border border-border shadow-sm">
                                 <CardHeader className="pb-4">
                                     <CardTitle className="text-lg font-bold flex items-center gap-2 text-foreground">
@@ -700,7 +870,7 @@ export default function ArchitectSelector() {
                                                 <p className="text-[10px] text-muted-foreground mt-1 leading-normal">Maximize daylight penetration.</p>
                                             </button>
                                             
-                                            {BLINDS.filter(b => b.compatibleModels.includes(selection.selectedProduct!.model) && b.prices[selection.sizeCode!] !== undefined).map(blind => {
+                                            {BLINDS.filter(b => b.id !== 'zil' && b.compatibleModels.includes(selection.selectedProduct!.model) && b.prices[selection.sizeCode!] !== undefined).map(blind => {
                                                 const isSelected = selection.selectedBlind === blind.id;
                                                 return (
                                                     <button
@@ -729,7 +899,7 @@ export default function ArchitectSelector() {
                                     </div>
 
                                     {/* Insect screen selection for roof windows */}
-                                    {selection.productCategory === 'roof-window' && (
+                                    {(selection.selectedProduct?.id === 'ggl' || selection.selectedProduct?.id === 'gpl') && (
                                         <div className="flex items-center justify-between border-t pt-4 border-dashed border-border">
                                             <div>
                                                 <h4 className="font-bold text-xs uppercase tracking-wider text-muted-foreground">Insect Screen (ZIL)</h4>
@@ -743,7 +913,7 @@ export default function ArchitectSelector() {
                                                         : 'bg-card text-foreground border-border hover:border-neutral-400'
                                                 }`}
                                             >
-                                                {selection.selectedInsectScreen ? 'Included' : 'Exclude'}
+                                                {selection.selectedInsectScreen ? 'Included' : 'Add Insect Screen'}
                                             </button>
                                         </div>
                                     )}
@@ -841,7 +1011,7 @@ export default function ArchitectSelector() {
                                             <div className="text-neutral-500 font-bold uppercase tracking-wider text-[10px] pb-1 border-b">Performance Matrix</div>
                                             
                                             <div className="flex justify-between py-1 border-b border-neutral-100">
-                                                <span className="text-neutral-500 flex items-center gap-1">U-Value (Total System) <span title="Thermal Heat Transfer Coefficient (lower is better)"><Info size={10} className="text-neutral-400" /></span></span>
+                                                <span className="text-neutral-500 flex items-center gap-1">R-Value (Total System) <span title="Thermal Heat Transfer Coefficient (lower is better)"><Info size={10} className="text-neutral-400" /></span></span>
                                                 <span className="font-bold text-foreground">{selection.selectedProduct.uValue} W/m²K</span>
                                             </div>
                                             
@@ -990,7 +1160,7 @@ export default function ArchitectSelector() {
                                             <th className="p-4">Size (WxH)</th>
                                             <th className="p-4">Light Area</th>
                                             <th className="p-4 max-w-[150px]">Glazing Specification</th>
-                                            <th className="p-4 text-center">U / SHGC</th>
+                                            <th className="p-4 text-center">R / SHGC</th>
                                             <th className="p-4 text-center">Rw (Acoustic)</th>
                                             <th className="p-4">Accessories</th>
                                             {showPricing && <th className="p-4 text-right">Unit Price</th>}
@@ -1031,7 +1201,7 @@ export default function ArchitectSelector() {
                                                 <td className="p-4 text-[10px] text-neutral-500 max-w-[150px] leading-relaxed">
                                                     {item.glazing}
                                                 </td>
-                                                {/* U / SHGC */}
+                                                {/* R / SHGC */}
                                                 <td className="p-4 text-center text-neutral-700 whitespace-nowrap">
                                                     {item.uValue} / {item.shgc}
                                                 </td>

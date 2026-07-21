@@ -298,7 +298,7 @@ export const PRODUCTS: Product[] = [
         id: 'twr',
         model: 'TWR',
         name: 'Rigid Sun Tunnel (TWR)',
-        roofType: ['pitched'],
+        roofType: ['pitched', 'flat'],
         openingType: 'fixed',
         compatibleSizes: ['0K14'],
         prices: {
@@ -317,7 +317,7 @@ export const PRODUCTS: Product[] = [
         id: 'twf',
         model: 'TWF',
         name: 'Flexible Sun Tunnel (TWF)',
-        roofType: ['pitched'],
+        roofType: ['pitched', 'flat'],
         openingType: 'fixed',
         compatibleSizes: ['0K14'],
         prices: {
