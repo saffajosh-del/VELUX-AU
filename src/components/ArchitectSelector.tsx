@@ -127,16 +127,6 @@ export default function ArchitectSelector() {
         return Array.from(types);
     }, [stepFilteredProducts]);
 
-    // Final list of products available for size selection
-    const finalProductsList = useMemo(() => {
-        return stepFilteredProducts.filter(p => {
-            if (selection.openingType && p.openingType !== selection.openingType) {
-                return false;
-            }
-            return true;
-        });
-    }, [stepFilteredProducts, selection.openingType]);
-
     // Sizes source for the selected product
     const availableSizes = useMemo(() => {
         if (!selection.selectedProduct) return [];
@@ -618,7 +608,7 @@ export default function ArchitectSelector() {
                                                 onClick={() => {
                                                     const prod = (selection.productCategory === 'sun-tunnel' || (selection.roofPitch === 'pitched' && op.id === 'manual'))
                                                         ? null
-                                                        : (finalProductsList.find(p => p.openingType === op.id) || null);
+                                                        : (stepFilteredProducts.find(p => p.openingType === op.id) || null);
                                                     setSelection({
                                                         ...selection,
                                                         openingType: op.id as any,
@@ -956,36 +946,49 @@ export default function ArchitectSelector() {
                                         </div>
                                     </div>
                                     <CardContent className="p-5 space-y-5">
-                                        {/* Technical CAD SVG Schematic */}
                                         <div className="bg-neutral-50 rounded-lg p-4 border flex items-center justify-center relative overflow-hidden h-[180px]">
                                             <div className="absolute top-2 left-2 text-[8px] bg-neutral-200 text-neutral-500 px-1 rounded uppercase tracking-wider font-bold">Profile Section</div>
-                                            <svg width="220" height="130" viewBox="0 0 220 130" className="w-full h-full max-w-[220px]">
-                                                {/* Left structural support */}
-                                                <rect x="10" y="30" width="30" height="80" rx="3" fill="#E5E5E5" stroke="#A3A3A3" strokeWidth="1.5" />
-                                                {/* Right structural support */}
-                                                <rect x="180" y="30" width="30" height="80" rx="3" fill="#E5E5E5" stroke="#A3A3A3" strokeWidth="1.5" />
-                                                
-                                                {/* Double glazing panes */}
-                                                {/* Inner Glass */}
-                                                <line x1="40" y1="55" x2="180" y2="55" stroke="#38BDF8" strokeWidth="3" />
-                                                {/* Argon gas gap */}
-                                                <line x1="40" y1="61" x2="180" y2="61" stroke="#E0F2FE" strokeWidth="4" strokeDasharray="2 3" />
-                                                {/* Outer Glass */}
-                                                <line x1="40" y1="67" x2="180" y2="67" stroke="#0284C7" strokeWidth="3" />
+                                            {['FCM', 'VCM', 'VCS'].includes(selection.selectedProduct.model.toUpperCase()) ? (
+                                                <img 
+                                                    src="/FCM%20VCM%20VCS.png" 
+                                                    alt="FCM VCM VCS Profile Section" 
+                                                    className="max-h-full max-w-full object-contain"
+                                                />
+                                            ) : ['FS', 'VS', 'VSE', 'VSS'].includes(selection.selectedProduct.model.toUpperCase()) ? (
+                                                <img 
+                                                    src="/FS%20VS%20VSE.png" 
+                                                    alt="FS VS VSE Profile Section" 
+                                                    className="max-h-full max-w-full object-contain"
+                                                />
+                                            ) : (
+                                                <svg width="220" height="130" viewBox="0 0 220 130" className="w-full h-full max-w-[220px]">
+                                                    {/* Left structural support */}
+                                                    <rect x="10" y="30" width="30" height="80" rx="3" fill="#E5E5E5" stroke="#A3A3A3" strokeWidth="1.5" />
+                                                    {/* Right structural support */}
+                                                    <rect x="180" y="30" width="30" height="80" rx="3" fill="#E5E5E5" stroke="#A3A3A3" strokeWidth="1.5" />
+                                                    
+                                                    {/* Double glazing panes */}
+                                                    {/* Inner Glass */}
+                                                    <line x1="40" y1="55" x2="180" y2="55" stroke="#38BDF8" strokeWidth="3" />
+                                                    {/* Argon gas gap */}
+                                                    <line x1="40" y1="61" x2="180" y2="61" stroke="#E0F2FE" strokeWidth="4" strokeDasharray="2 3" />
+                                                    {/* Outer Glass */}
+                                                    <line x1="40" y1="67" x2="180" y2="67" stroke="#0284C7" strokeWidth="3" />
 
-                                                {/* Sealing rubbers / gasket */}
-                                                <rect x="38" y="50" width="4" height="22" rx="1" fill="#171717" />
-                                                <rect x="178" y="50" width="4" height="22" rx="1" fill="#171717" />
-                                                
-                                                {/* Frame / Gaskets */}
-                                                <path d="M4 110 H216" stroke="#404040" strokeWidth="2.5" />
-                                                
-                                                {/* Labels */}
-                                                <text x="110" y="45" textAnchor="middle" fontSize="8" fill="#737373" fontFamily="sans-serif">Double-Glazed Gas Cavity</text>
-                                                <text x="110" y="85" textAnchor="middle" fontSize="9" fill="#DA251D" fontWeight="bold" fontFamily="sans-serif">
-                                                    {selectedSizeDetails.width} × {selectedSizeDetails.height} mm
-                                                </text>
-                                            </svg>
+                                                    {/* Sealing rubbers / gasket */}
+                                                    <rect x="38" y="50" width="4" height="22" rx="1" fill="#171717" />
+                                                    <rect x="178" y="50" width="4" height="22" rx="1" fill="#171717" />
+                                                    
+                                                    {/* Frame / Gaskets */}
+                                                    <path d="M4 110 H216" stroke="#404040" strokeWidth="2.5" />
+                                                    
+                                                    {/* Labels */}
+                                                    <text x="110" y="45" textAnchor="middle" fontSize="8" fill="#737373" fontFamily="sans-serif">Double-Glazed Gas Cavity</text>
+                                                    <text x="110" y="85" textAnchor="middle" fontSize="9" fill="#DA251D" fontWeight="bold" fontFamily="sans-serif">
+                                                        {selectedSizeDetails.width} × {selectedSizeDetails.height} mm
+                                                    </text>
+                                                </svg>
+                                            )}
                                         </div>
 
                                         {/* Physical Specifications */}

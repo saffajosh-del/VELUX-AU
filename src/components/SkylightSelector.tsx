@@ -1348,13 +1348,13 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
         let controls: {id: string, name: string, code: string, desc: string, price: number}[] = [];
         if (isVS) {
             controls = [
-                { id: 'zzz201', name: 'Winder Handle', code: 'ZZZ 201', desc: 'For skylights within arms reach', price: 59 },
-                { id: 'zct300', name: 'Extendable Rod Control', code: 'ZCT 300', desc: 'For skylights out of arms reach (145 - 285cm in length)', price: 99 }
+                { id: 'zzz201', name: 'Winder Handle', code: 'ZZZ 201', desc: 'For skylights within arms reach', price: (new Date() >= new Date('2026-08-01T00:00:00') ? 60 : 59) },
+                { id: 'zct300', name: 'Extendable Rod Control', code: 'ZCT 300', desc: 'For skylights out of arms reach (145 - 285cm in length)', price: (new Date() >= new Date('2026-08-01T00:00:00') ? 101 : 99) }
             ];
         } else if (isVCM) {
             controls = [
-                { id: 'zzz212', name: 'Winder Handle', code: 'ZZZ 212', desc: 'For skylights within arms reach', price: 59 },
-                { id: 'zct300', name: 'Extendable Rod Control', code: 'ZCT 300', desc: 'For skylights out of arms reach (145 - 285cm in length)', price: 99 }
+                { id: 'zzz212', name: 'Winder Handle', code: 'ZZZ 212', desc: 'For skylights within arms reach', price: (new Date() >= new Date('2026-08-01T00:00:00') ? 60 : 59) },
+                { id: 'zct300', name: 'Extendable Rod Control', code: 'ZCT 300', desc: 'For skylights out of arms reach (145 - 285cm in length)', price: (new Date() >= new Date('2026-08-01T00:00:00') ? 101 : 99) }
             ];
         }
 
@@ -1571,8 +1571,8 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
         let manualControlsPrice = 0;
         if (selection.selectedManualControl) {
             const id = selection.selectedManualControl;
-            if (id === 'zzz201') manualControlsPrice = 59;
-            if (id === 'zzz212') manualControlsPrice = 59;
+            if (id === 'zzz201') manualControlsPrice = (new Date() >= new Date('2026-08-01T00:00:00') ? 60 : 59);
+            if (id === 'zzz212') manualControlsPrice = (new Date() >= new Date('2026-08-01T00:00:00') ? 60 : 59);
             if (id === 'zct300') manualControlsPrice = 99;
         }
 
@@ -1677,9 +1677,9 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
                                     let code = '';
                                     let name = '';
                                     let price = 0;
-                                    if (controlId === 'zzz201') { code = 'ZZZ 201'; name = 'Winder Handle'; price = 59; }
-                                    if (controlId === 'zzz212') { code = 'ZZZ 212'; name = 'Winder Handle'; price = 59; }
-                                    if (controlId === 'zct300') { code = 'ZCT 300'; name = 'Extendable Rod Control'; price = 99; }
+                                    if (controlId === 'zzz201') { code = 'ZZZ 201'; name = 'Winder Handle'; price = (new Date() >= new Date('2026-08-01T00:00:00') ? 60 : 59); }
+                                    if (controlId === 'zzz212') { code = 'ZZZ 212'; name = 'Winder Handle'; price = (new Date() >= new Date('2026-08-01T00:00:00') ? 60 : 59); }
+                                    if (controlId === 'zct300') { code = 'ZCT 300'; name = 'Extendable Rod Control'; price = (new Date() >= new Date('2026-08-01T00:00:00') ? 101 : 99) }
                                     return (
                                         <div key={controlId} className="flex justify-between text-sm items-start">
                                             <div>

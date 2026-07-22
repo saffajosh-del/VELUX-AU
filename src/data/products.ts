@@ -15,6 +15,7 @@ export interface Product {
     roofType: RoofType[];
     openingType: OpeningType;
     prices: Record<string, number>; // sizeCode -> price
+    newPrices?: Record<string, number>; // sizeCode -> price
     compatibleSizes: string[];
     image?: string;
     uValue?: number;
@@ -30,6 +31,7 @@ export interface Flashing {
     id: string;
     name: string;
     prices: Record<string, number>;
+    newPrices?: Record<string, number>;
 }
 
 export interface Blind {
@@ -39,8 +41,17 @@ export interface Blind {
     type: string; // "darkening" or "translucent"
     compatibleModels: string[]; // "FS", "VS", "VSE", "VSS"
     prices: Record<string, number>;
+    newPrices?: Record<string, number>;
     image?: string;
     subtitle?: string;
+}
+
+export interface Accessory {
+    id: string;
+    name: string;
+    compatibleModels: string[];
+    prices: Record<string, number>;
+    newPrices?: Record<string, number>;
 }
 
 // ----------------------------------------------------------------------
@@ -108,7 +119,7 @@ const TUNNEL_DAYLIGHT: Record<string, number> = {
     '0K14': 0.10, '014': 0.10
 };
 
-export const PRODUCTS: Product[] = [
+const rawPRODUCTS: Product[] = [
     // PITCHED ROOF
     {
         id: 'fs',
@@ -122,13 +133,18 @@ export const PRODUCTS: Product[] = [
             'M02': 761, 'M04': 803, 'M06': 909, 'M08': 1017, 'S01': 885,
             'S06': 1056
         },
+        newPrices: {
+            'C01': 572, 'C04': 661, 'C06': 759, 'C08': 848, 'C12': 1199,
+            'M02': 780, 'M04': 823, 'M06': 932, 'M08': 1042, 'S01': 907,
+            'S06': 1082
+        },
         image: '/FS-skylight.jpg',
         uValue: 2.5,
         shgc: 0.21,
         rw: 32,
         vlt: 0.48,
         balRating: 'BAL-40',
-        hailResistance: 'Class 4 (Highest)',
+        hailResistance: 'ASTM E822',
         daylightArea: PITCHED_DAYLIGHT
     },
     {
@@ -142,13 +158,17 @@ export const PRODUCTS: Product[] = [
             'C01': 1271, 'C04': 1292, 'C06': 1381, 'C08': 1451, 'M02': 1451,
             'M04': 1514, 'M06': 1653, 'M08': 1792, 'S01': 1594, 'S06': 2009
         },
+        newPrices: {
+            'C01': 1303, 'C04': 1324, 'C06': 1415, 'C08': 1487, 'M02': 1487,
+            'M04': 1552, 'M06': 1694, 'M08': 1836, 'S01': 1634, 'S06': 2059
+        },
         image: '/VS-skylight.jpg',
         uValue: 2.5,
         shgc: 0.21,
         rw: 32,
         vlt: 0.48,
         balRating: 'BAL-40',
-        hailResistance: 'Class 4 (Highest)',
+        hailResistance: 'ASTM E822',
         daylightArea: PITCHED_DAYLIGHT
     },
     {
@@ -162,13 +182,17 @@ export const PRODUCTS: Product[] = [
             'C01': 2392, 'C04': 2421, 'C06': 2486, 'C08': 2547, 'M04': 2596,
             'M06': 2709, 'M08': 2823, 'S01': 2686, 'S06': 2995
         },
+        newPrices: {
+            'C01': 2451, 'C04': 2481, 'C06': 2548, 'C08': 2610, 'M04': 2661,
+            'M06': 2776, 'M08': 2893, 'S01': 2753, 'S06': 3070
+        },
         image: '/VSE-skylight.jpg',
         uValue: 2.5,
         shgc: 0.21,
         rw: 32,
         vlt: 0.48,
         balRating: 'BAL-40',
-        hailResistance: 'Class 4 (Highest)',
+        hailResistance: 'ASTM E822',
         daylightArea: PITCHED_DAYLIGHT
     },
     {
@@ -182,13 +206,17 @@ export const PRODUCTS: Product[] = [
             'C01': 2579, 'C04': 2610, 'C06': 2680, 'C08': 2746, 'M02': 2735,
             'M04': 2799, 'M06': 2921, 'M08': 3043, 'S01': 2896, 'S06': 3229
         },
+        newPrices: {
+            'C01': 2643, 'C04': 2675, 'C06': 2747, 'C08': 2814, 'M02': 2803,
+            'M04': 2869, 'M06': 2993, 'M08': 3119, 'S01': 2968, 'S06': 3310
+        },
         image: '/VSS-skylight.png',
         uValue: 2.5,
         shgc: 0.21,
         rw: 32,
         vlt: 0.48,
         balRating: 'BAL-40',
-        hailResistance: 'Class 4 (Highest)',
+        hailResistance: 'ASTM E822',
         daylightArea: PITCHED_DAYLIGHT
     },
     // ROOF WINDOWS
@@ -202,13 +230,16 @@ export const PRODUCTS: Product[] = [
         prices: {
             'CK02': 842, 'CK04': 893, 'MK04': 1045, 'MK08': 1277, 'SK06': 1581
         },
+        newPrices: {
+            'CK02': 863, 'CK04': 915, 'MK04': 1071, 'MK08': 1308, 'SK06': 1620
+        },
         image: '/GGL-roof-window.png',
         uValue: 1.3,
         shgc: 0.31,
         rw: 34,
         vlt: 0.64,
         balRating: 'BAL-40',
-        hailResistance: 'Class 4 (Highest)',
+        hailResistance: 'ASTM E822',
         daylightArea: ROOF_WINDOW_DAYLIGHT
     },
     {
@@ -221,13 +252,16 @@ export const PRODUCTS: Product[] = [
         prices: {
             'CK04': 1003, 'MK04': 1153, 'MK06': 1264, 'MK08': 1429, 'SK06': 1665
         },
+        newPrices: {
+            'CK04': 1028, 'MK04': 1182, 'MK06': 1295, 'MK08': 1465, 'SK06': 1706
+        },
         image: '/GPL-roof-window.png',
         uValue: 1.3,
         shgc: 0.31,
         rw: 34,
         vlt: 0.64,
         balRating: 'BAL-40',
-        hailResistance: 'Class 4 (Highest)',
+        hailResistance: 'ASTM E822',
         daylightArea: ROOF_WINDOW_DAYLIGHT
     },
 
@@ -244,13 +278,18 @@ export const PRODUCTS: Product[] = [
             '2270': 968, '3030': 519, '3046': 659, '3055': 804, '3072': 2041,
             '3434': 591, '3446': 696, '4646': 731, '4672': 2271
         },
+        newPrices: {
+            '1430': 388, '2222': 421, '2230': 458, '2234': 485, '2246': 550,
+            '2270': 992, '3030': 532, '3046': 675, '3055': 824, '3072': 2090,
+            '3434': 605, '3446': 713, '4646': 749, '4672': 2326
+        },
         image: '/FCM-skylight.jpg',
         uValue: 2.9,
         shgc: 0.28,
         rw: 29,
         vlt: 0.61,
         balRating: 'BAL-40',
-        hailResistance: 'Class 4 (Highest)',
+        hailResistance: 'ASTM E822',
         daylightArea: FLAT_DAYLIGHT
     },
     {
@@ -264,13 +303,17 @@ export const PRODUCTS: Product[] = [
             '2222': 1342, '2234': 1449, '2246': 1601, '3030': 1678, '3046': 1822,
             '3434': 1753, '4646': 2136
         },
+        newPrices: {
+            '2222': 1375, '2234': 1485, '2246': 1641, '3030': 1720, '3046': 1867,
+            '3434': 1797, '4646': 2189
+        },
         image: '/VCM-skylight.jpg',
         uValue: 2.9,
         shgc: 0.24,
         rw: 31,
         vlt: 0.55,
         balRating: 'BAL-40',
-        hailResistance: 'Class 4 (Highest)',
+        hailResistance: 'ASTM E822',
         daylightArea: FLAT_DAYLIGHT
     },
     {
@@ -284,13 +327,17 @@ export const PRODUCTS: Product[] = [
             '2222': 2598, '2234': 2747, '2246': 2927, '3030': 2937, '3046': 3081,
             '3434': 3000, '4622': 2946, '4646': 3228
         },
+        newPrices: {
+            '2222': 2663, '2234': 2816, '2246': 3000, '3030': 3010, '3046': 3158,
+            '3434': 3075, '4622': 3020, '4646': 3309
+        },
         image: '/VCS-skylight.jpg',
         uValue: 2.9,
         shgc: 0.24,
         rw: 31,
         vlt: 0.55,
         balRating: 'BAL-40',
-        hailResistance: 'Class 4 (Highest)',
+        hailResistance: 'ASTM E822',
         daylightArea: FLAT_DAYLIGHT
     },
     // SUN TUNNELS
@@ -303,6 +350,9 @@ export const PRODUCTS: Product[] = [
         compatibleSizes: ['0K14'],
         prices: {
             '0K14': 781
+        },
+        newPrices: {
+            '0K14': 800
         },
         image: '/TWR-sun-tunnel.jpg',
         uValue: 2.9,
@@ -323,6 +373,9 @@ export const PRODUCTS: Product[] = [
         prices: {
             '0K14': 482
         },
+        newPrices: {
+            '0K14': 494
+        },
         image: '/TWF-sun-tunnel.jpg',
         uValue: 2.9,
         shgc: 0.22,
@@ -342,6 +395,9 @@ export const PRODUCTS: Product[] = [
         prices: {
             '014': 831
         },
+        newPrices: {
+            '014': 851
+        },
         image: '/TCR-sun-tunnel.jpg',
         uValue: 2.9,
         shgc: 0.22,
@@ -353,7 +409,7 @@ export const PRODUCTS: Product[] = [
     }
 ];
 
-export const FLASHINGS: Flashing = {
+const rawFLASHINGS: Flashing = {
     id: 'edw',
     name: 'EDW Flashing (Tile/Corrugated)',
     prices: {
@@ -361,10 +417,16 @@ export const FLASHINGS: Flashing = {
             'M02': 142, 'M04': 142, 'M06': 146, 'M08': 149, 'S01': 150,
             'S06': 176, 'CK02': 122, 'CK04': 135, 'MK04': 155, 'MK06': 160,
             'MK08': 163, 'SK06': 193
-        }
+        },
+        newPrices: {
+            'C01': 120, 'C04': 126, 'C06': 127, 'C08': 135, 'C12': 168,
+            'CK02': 119, 'CK04': 132, 'M02': 145, 'M04': 145, 'M06': 149,
+            'M08': 152, 'MK04': 151, 'MK06': 156, 'MK08': 159, 'S01': 154,
+            'S06': 180, 'SK06': 188
+        },
 };
 
-export const BLINDS: Blind[] = [
+const rawBLINDS: Blind[] = [
     {
         id: 'fscd',
         model: 'FSCD',
@@ -376,6 +438,11 @@ export const BLINDS: Blind[] = [
             'C01': 635, 'C04': 635, 'C06': 635, 'C08': 635, 'C12': 794,
             'M02': 650, 'M04': 650, 'M06': 650, 'M08': 650, 'S01': 663,
             'S06': 663
+        },
+        newPrices: {
+            'C01': 651, 'C04': 651, 'C06': 651, 'C08': 651, 'C12': 814,
+            'M02': 666, 'M04': 666, 'M06': 666, 'M08': 666, 'S01': 680,
+            'S06': 680
         },
         image: '/solar-honeycomb-blackout.png'
     },
@@ -391,6 +458,10 @@ export const BLINDS: Blind[] = [
             'M02': 650, 'M04': 650, 'M06': 650, 'M08': 650, 'S01': 663,
             'S06': 663
         },
+        newPrices: {
+            'C01': 651, 'C04': 651, 'C06': 651, 'C08': 651, 'M02': 666,
+            'M04': 666, 'M06': 666, 'M08': 666, 'S01': 680, 'S06': 680
+        },
         image: '/solar-translucent.png'
         // Note: C12 excluded in data markdown for FSLD/FSCH/FSLH
     },
@@ -405,6 +476,10 @@ export const BLINDS: Blind[] = [
             'C01': 635, 'C04': 635, 'C06': 635, 'C08': 635, 'M02': 650,
             'M04': 650, 'M06': 650, 'M08': 650, 'S01': 663, 'S06': 663
         },
+        newPrices: {
+            'C01': 651, 'C04': 651, 'C06': 651, 'C08': 651, 'M02': 666,
+            'M04': 666, 'M06': 666, 'M08': 666, 'S01': 680, 'S06': 680
+        },
         image: '/solar-honeycomb-blackout.png'
     },
     {
@@ -417,6 +492,10 @@ export const BLINDS: Blind[] = [
         prices: {
             'C01': 635, 'C04': 635, 'C06': 635, 'C08': 635, 'M02': 650,
             'M04': 650, 'M06': 650, 'M08': 650, 'S01': 663, 'S06': 663
+        },
+        newPrices: {
+            'C01': 651, 'C04': 651, 'C06': 651, 'C08': 651, 'M02': 666,
+            'M04': 666, 'M06': 666, 'M08': 666, 'S01': 680, 'S06': 680
         },
         image: '/solar-translucent.png'
     },
@@ -432,6 +511,10 @@ export const BLINDS: Blind[] = [
             'CK02': 257, 'CK04': 273, 'MK04': 283, 'MK06': 302, 'MK08': 329,
             'SK06': 355
         },
+        newPrices: {
+            'CK02': 264, 'CK04': 279, 'MK04': 290, 'MK06': 310, 'MK08': 337,
+            'SK06': 364
+        },
         image: '/solar-honeycomb-blackout.png' // Utilizing existing image for now
     },
     {
@@ -443,6 +526,9 @@ export const BLINDS: Blind[] = [
         prices: {
             'CK02': 351, 'CK04': 351, 'MK04': 433, 'MK06': 433, 'MK08': 433,
             'SK06': 481, 'CK06': 351, 'MK10': 433, 'SK10': 481
+        },
+        newPrices: {
+            'CK06': 360, 'MK10': 444, 'SK10': 493
         },
         image: '/ZIL-insect-screen.png'
     },
@@ -459,20 +545,30 @@ export const BLINDS: Blind[] = [
             '2270': 731, '3030': 649, '3046': 649, '3055': 640, '3072': 706,
             '3434': 662, '3446': 662, '4646': 704, '4672': 706, '4622': 704
         },
+        newPrices: {
+            '2222': 653, '2230': 653, '2234': 653, '2246': 653, '2270': 750,
+            '3030': 665, '3046': 665, '3434': 679, '3446': 679, '4622': 722,
+            '4646': 722
+        },
         image: '/solar-honeycomb-blackout.png'
     }
 ];
 
-export const ACCESSORIES = [
+const rawACCESSORIES: Accessory[] = [
     {
         id: 'zzz199',
         name: 'ZZZ 199 Blind Tray',
-        compatibleModels: ['FCM', 'VCM', 'VCS'],
+        compatibleModels: ['FCM'],
         prices: {
             '2222': 98, '2230': 98, '2234': 98, '2246': 98, '2270': 126,
             '3030': 101, '3046': 101, '3434': 105, '3446': 105, '4622': 109,
             '4646': 109
-        }
+        },
+        newPrices: {
+            '2222': 100, '2230': 100, '2234': 100, '2246': 100, '2270': 130,
+            '3030': 104, '3046': 104, '3434': 108, '3446': 108, '4622': 112,
+            '4646': 112
+        },
     },
     {
         id: 'ztr0k14',
@@ -480,7 +576,27 @@ export const ACCESSORIES = [
         compatibleModels: ['TWR', 'TCR'],
         prices: {
             '0K14': 307
-        }
+        },
+        newPrices: {
+            '0K14': 315
+        },
     }
 ];
+
+const isAugust1stOrLater = new Date() >= new Date('2026-08-01T00:00:00');
+
+const withActivePrices = <T extends { prices: Record<string, number>; newPrices?: Record<string, number> }>(item: T): T => {
+    if (isAugust1stOrLater && item.newPrices) {
+        return {
+            ...item,
+            prices: item.newPrices
+        };
+    }
+    return item;
+};
+
+export const PRODUCTS = rawPRODUCTS.map(withActivePrices);
+export const FLASHINGS = withActivePrices(rawFLASHINGS);
+export const BLINDS = rawBLINDS.map(withActivePrices);
+export const ACCESSORIES = rawACCESSORIES.map(withActivePrices);
 
