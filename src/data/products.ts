@@ -18,7 +18,7 @@ export interface Product {
     newPrices?: Record<string, number>; // sizeCode -> price
     compatibleSizes: string[];
     image?: string;
-    uValue?: number;
+    rValues?: Record<string, number | string>;
     shgc?: number;
     rw?: number;
     vlt?: number;
@@ -139,7 +139,11 @@ const rawPRODUCTS: Product[] = [
             'S06': 1082
         },
         image: '/FS-skylight.jpg',
-        uValue: 2.5,
+        rValues: {
+            'C01': '0.356', 'C04': '0.372', 'C06': '0.400', 'C08': '0.385', 'C12': '0.400',
+            'M02': '0.385', 'M04': '0.398', 'M06': '0.406', 'M08': '0.413', 'S01': '0.397',
+            'S06': '0.430'
+        },
         shgc: 0.21,
         rw: 32,
         vlt: 0.48,
@@ -163,7 +167,10 @@ const rawPRODUCTS: Product[] = [
             'M04': 1552, 'M06': 1694, 'M08': 1836, 'S01': 1634, 'S06': 2059
         },
         image: '/VS-skylight.jpg',
-        uValue: 2.5,
+        rValues: {
+            'C01': '0.400', 'C04': '0.382', 'C06': '0.400', 'C08': '0.389', 'M02': '0.402',
+            'M04': '0.410', 'M06': '0.416', 'M08': '0.420', 'S01': '0.418', 'S06': '0.441'
+        },
         shgc: 0.21,
         rw: 32,
         vlt: 0.48,
@@ -187,7 +194,10 @@ const rawPRODUCTS: Product[] = [
             'M06': 2776, 'M08': 2893, 'S01': 2753, 'S06': 3070
         },
         image: '/VSE-skylight.jpg',
-        uValue: 2.5,
+        rValues: {
+            'C01': '0.400', 'C04': '0.382', 'C06': '0.400', 'C08': '0.389', 'M02': '0.402',
+            'M04': '0.410', 'M06': '0.416', 'M08': '0.420', 'S01': '0.418', 'S06': '0.441'
+        },
         shgc: 0.21,
         rw: 32,
         vlt: 0.48,
@@ -211,7 +221,10 @@ const rawPRODUCTS: Product[] = [
             'M04': 2869, 'M06': 2993, 'M08': 3119, 'S01': 2968, 'S06': 3310
         },
         image: '/VSS-skylight.png',
-        uValue: 2.5,
+        rValues: {
+            'C01': '0.400', 'C04': '0.382', 'C06': '0.400', 'C08': '0.389', 'M02': '0.402',
+            'M04': '0.410', 'M06': '0.416', 'M08': '0.420', 'S01': '0.418', 'S06': '0.441'
+        },
         shgc: 0.21,
         rw: 32,
         vlt: 0.48,
@@ -234,7 +247,9 @@ const rawPRODUCTS: Product[] = [
             'CK02': 863, 'CK04': 915, 'MK04': 1071, 'MK08': 1308, 'SK06': 1620
         },
         image: '/GGL-roof-window.png',
-        uValue: 1.3,
+        rValues: {
+            'CK02': '0.500', 'CK04': '0.500', 'MK04': '0.530', 'MK06': '0.530', 'MK08': '0.530', 'SK06': '0.530'
+        },
         shgc: 0.31,
         rw: 34,
         vlt: 0.64,
@@ -256,7 +271,9 @@ const rawPRODUCTS: Product[] = [
             'CK04': 1028, 'MK04': 1182, 'MK06': 1295, 'MK08': 1465, 'SK06': 1706
         },
         image: '/GPL-roof-window.png',
-        uValue: 1.3,
+        rValues: {
+            'CK02': '0.500', 'CK04': '0.500', 'MK04': '0.530', 'MK06': '0.530', 'MK08': '0.530', 'SK06': '0.530'
+        },
         shgc: 0.31,
         rw: 34,
         vlt: 0.64,
@@ -284,7 +301,11 @@ const rawPRODUCTS: Product[] = [
             '3434': 605, '3446': 713, '4646': 749, '4672': 2326
         },
         image: '/FCM-skylight.jpg',
-        uValue: 2.9,
+        rValues: {
+            '1430': '0.362', '2222': '0.365', '2230': '0.365', '2234': '0.365', '2246': '0.365',
+            '2270': '0.365', '3030': '0.396', '3046': '0.396', '3055': '0.410', '3072': '0.410',
+            '3434': '0.409', '3446': '0.409', '4622': '0.345', '4646': '0.438', '4672': '0.438'
+        },
         shgc: 0.28,
         rw: 29,
         vlt: 0.61,
@@ -308,7 +329,10 @@ const rawPRODUCTS: Product[] = [
             '3434': 1797, '4646': 2189
         },
         image: '/VCM-skylight.jpg',
-        uValue: 2.9,
+        rValues: {
+            '2222': '0.374', '2234': '0.393', '2246': '0.403', '3030': '0.403', '3046': '0.422',
+            '3434': '0.345', '4622': '0.403', '4646': '0.443'
+        },
         shgc: 0.24,
         rw: 31,
         vlt: 0.55,
@@ -332,7 +356,10 @@ const rawPRODUCTS: Product[] = [
             '3434': 3075, '4622': 3020, '4646': 3309
         },
         image: '/VCS-skylight.jpg',
-        uValue: 2.9,
+        rValues: {
+            '2222': '0.374', '2234': '0.393', '2246': '0.403', '3030': '0.403', '3046': '0.422',
+            '3434': '0.345', '4622': '0.403', '4646': '0.443'
+        },
         shgc: 0.24,
         rw: 31,
         vlt: 0.55,
@@ -355,7 +382,9 @@ const rawPRODUCTS: Product[] = [
             '0K14': 800
         },
         image: '/TWR-sun-tunnel.jpg',
-        uValue: 2.9,
+        rValues: {
+            '0K14': '0.330'
+        },
         shgc: 0.22,
         rw: 26,
         vlt: 0.65,
@@ -377,7 +406,9 @@ const rawPRODUCTS: Product[] = [
             '0K14': 494
         },
         image: '/TWF-sun-tunnel.jpg',
-        uValue: 2.9,
+        rValues: {
+            '0K14': '0.330'
+        },
         shgc: 0.22,
         rw: 26,
         vlt: 0.65,
@@ -399,7 +430,9 @@ const rawPRODUCTS: Product[] = [
             '014': 851
         },
         image: '/TCR-sun-tunnel.jpg',
-        uValue: 2.9,
+        rValues: {
+            '014': '0.330'
+        },
         shgc: 0.22,
         rw: 26,
         vlt: 0.65,
