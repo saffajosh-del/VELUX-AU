@@ -109,6 +109,7 @@ const DEALER_INFO: Record<string, DealerInfo> = {
     'bowens': { name: 'Bowens', url: 'https://www.bowens.com.au/brands/velux/' },
     'dahlsens': { name: 'Dahlsens', url: 'https://www.dahlsens.com.au/skylights-roof-windows/' },
     'reece': { name: 'Reece', url: 'https://www.reece.com.au/' },
+    'peak': { name: 'Peak', url: '' },
 };
 
 interface SkylightSelectorProps {
@@ -1845,6 +1846,8 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
                     </motion.div>
                 </AnimatePresence>
             </div>
+
+
         </div>
     );
 }
