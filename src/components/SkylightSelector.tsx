@@ -1787,10 +1787,10 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
                     <div className="flex-1 flex justify-start pl-4">
                         {dealerInfo?.url ? (
                             <a href={dealerInfo.url} target="_blank" rel="noopener noreferrer">
-                                <img src={`/${customerId}-logo.png`} alt={partnerName} className="h-16 object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                                <img src={`/${customerId}-logo.png`} alt={partnerName} className={`${customerId.toLowerCase() === 'peak' ? 'h-24' : 'h-16'} object-contain`} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                             </a>
                         ) : (
-                            <img src={`/${customerId}-logo.png`} alt={partnerName} className="h-16 object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                            <img src={`/${customerId}-logo.png`} alt={partnerName} className={`${customerId.toLowerCase() === 'peak' ? 'h-24' : 'h-16'} object-contain`} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                         )}
                     </div>
                 </div>
