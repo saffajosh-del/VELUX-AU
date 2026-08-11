@@ -120,10 +120,6 @@ const LOGO_HEIGHTS: Record<string, string> = {
     'saskylights': 'h-36',
 };
 
-const LOGO_CLASSES: Record<string, string> = {
-    'statewide': 'bg-neutral-900 p-2 rounded-md',
-};
-
 interface SkylightSelectorProps {
     customerId?: string;
     customerMapping?: Record<string, string> | null;
@@ -1799,10 +1795,10 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
                     <div className="flex-1 flex justify-start pl-4">
                         {dealerInfo?.url ? (
                             <a href={dealerInfo.url} target="_blank" rel="noopener noreferrer">
-                                <img src={`/${customerId}-logo.png`} alt={partnerName} className={`${LOGO_HEIGHTS[customerId.toLowerCase()] || 'h-16'} ${LOGO_CLASSES[customerId.toLowerCase()] || ''} object-contain`} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                                <img src={`/${customerId}-logo.png`} alt={partnerName} className={`${LOGO_HEIGHTS[customerId.toLowerCase()] || 'h-16'} object-contain`} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                             </a>
                         ) : (
-                            <img src={`/${customerId}-logo.png`} alt={partnerName} className={`${LOGO_HEIGHTS[customerId.toLowerCase()] || 'h-16'} ${LOGO_CLASSES[customerId.toLowerCase()] || ''} object-contain`} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                            <img src={`/${customerId}-logo.png`} alt={partnerName} className={`${LOGO_HEIGHTS[customerId.toLowerCase()] || 'h-16'} object-contain`} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                         )}
                     </div>
                 </div>
