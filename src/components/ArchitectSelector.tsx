@@ -5,7 +5,6 @@ import {
     PITCHED_SIZES, 
     FLAT_SIZES, 
     ROOF_WINDOW_SIZES, 
-    FLASHINGS, 
     BLINDS, 
     ACCESSORIES
 } from '@/data/products';
@@ -195,11 +194,7 @@ export default function ArchitectSelector() {
         if (!selection.selectedProduct || !sizeCode) return 0;
         let basePrice = selection.selectedProduct.prices[sizeCode] || 0;
 
-        // Flashing price
-        if (selection.productCategory !== 'sun-tunnel' && selection.roofPitch !== 'flat') {
-            const flashingPrice = FLASHINGS.prices[sizeCode] || 0;
-            basePrice += flashingPrice;
-        }
+        // Flashing price is excluded to match standard product RRP list.
 
         // Blind price
         if (selection.selectedBlind) {
