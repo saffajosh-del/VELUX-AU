@@ -111,6 +111,7 @@ const DEALER_INFO: Record<string, DealerInfo> = {
     'reece': { name: 'Reece', url: 'https://www.reece.com.au/' },
     'peak': { name: 'Peak', url: '' },
     'saskylights': { name: 'SA Skylights', url: '' },
+    'vsky': { name: 'VSky', url: '' },
 };
 
 const LOGO_HEIGHTS: Record<string, string> = {
