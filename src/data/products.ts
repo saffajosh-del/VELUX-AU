@@ -73,20 +73,20 @@ export const PITCHED_SIZES: Size[] = [
 ];
 
 export const FLAT_SIZES: Size[] = [
-    { code: '1430', width: 368, height: 775, label: '368 x 775' },
-    { code: '2222', width: 572, height: 572, label: '572 x 572' },
-    { code: '2230', width: 572, height: 775, label: '572 x 775' },
-    { code: '2234', width: 572, height: 876, label: '572 x 876' },
-    { code: '2246', width: 572, height: 1181, label: '572 x 1181' },
-    { code: '2270', width: 572, height: 1792, label: '572 x 1792' },
-    { code: '3030', width: 775, height: 775, label: '775 x 775' },
-    { code: '3046', width: 775, height: 1181, label: '775 x 1181' },
+    { code: '1430', width: 375, height: 780, label: '375 x 780' },
+    { code: '2222', width: 575, height: 575, label: '575 x 575' },
+    { code: '2230', width: 575, height: 780, label: '575 x 780' },
+    { code: '2234', width: 575, height: 880, label: '575 x 880' },
+    { code: '2246', width: 575, height: 1185, label: '575 x 1185' },
+    { code: '2270', width: 575, height: 1795, label: '575 x 1795' },
+    { code: '3030', width: 780, height: 780, label: '780 x 780' },
+    { code: '3046', width: 780, height: 1185, label: '780 x 1185' },
     { code: '3055', width: 775, height: 1410, label: '775 x 1410' },
     { code: '3072', width: 775, height: 1842, label: '775 x 1842' },
-    { code: '3434', width: 876, height: 876, label: '876 x 876' },
-    { code: '3446', width: 876, height: 1181, label: '876 x 1181' },
-    { code: '4622', width: 1181, height: 572, label: '1181 x 572' },
-    { code: '4646', width: 1181, height: 1181, label: '1181 x 1181' },
+    { code: '3434', width: 880, height: 880, label: '880 x 880' },
+    { code: '3446', width: 880, height: 1185, label: '880 x 1185' },
+    { code: '4622', width: 1185, height: 574, label: '1185 x 574' },
+    { code: '4646', width: 1185, height: 1185, label: '1185 x 1185' },
     { code: '4672', width: 1181, height: 1842, label: '1181 x 1842' },
 ];
 
