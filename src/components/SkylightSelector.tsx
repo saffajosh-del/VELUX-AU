@@ -113,6 +113,8 @@ const DEALER_INFO: Record<string, DealerInfo> = {
     'saskylights': { name: 'SA Skylights', url: '' },
     'vsky': { name: 'VSky', url: '' },
     'statewide': { name: 'Statewide', url: 'https://statewideroofingsupplies.com.au/' },
+    'carterroofing': { name: 'Carter Roofing', url: '' },
+    'skylightswest': { name: 'Skylights West', url: '' },
 };
 
 const LOGO_HEIGHTS: Record<string, string> = {
