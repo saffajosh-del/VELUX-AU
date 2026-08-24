@@ -1460,7 +1460,7 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
 
     const renderSummaryStep = () => {
         const getPartnerCode = (code: string, blockLayout = false) => {
-            if (customerId !== 'velux' && customerMapping) {
+            if (customerId !== 'velux' && customerMapping && Object.keys(customerMapping).length > 0) {
                 const cleanCode = code.trim().toUpperCase();
                 const mapped = customerMapping[cleanCode] || 
                                customerMapping[`${cleanCode} B`] || 

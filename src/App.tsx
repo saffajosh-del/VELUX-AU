@@ -15,7 +15,12 @@ function App() {
       if (customerId && customerId !== 'velux') {
         try {
           const mapping = await import(`./data/${customerId}-mapping.json`);
-          setCustomerMapping(mapping.default || mapping);
+          const data = mapping.default || mapping;
+          if (data && typeof data === 'object' && Object.keys(data).length > 0) {
+            setCustomerMapping(data);
+          } else {
+            setCustomerMapping(null);
+          }
         } catch (e) {
           console.warn(`No specific config found for customer: ${customerId}`);
           setCustomerMapping(null);
