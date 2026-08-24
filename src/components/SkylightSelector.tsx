@@ -98,6 +98,7 @@ const TRUSS_OPTIONS = [
 interface DealerInfo {
     name: string;
     url: string;
+    logo?: string;
 }
 
 const DEALER_INFO: Record<string, DealerInfo> = {
@@ -115,6 +116,7 @@ const DEALER_INFO: Record<string, DealerInfo> = {
     'statewide': { name: 'Statewide', url: 'https://statewideroofingsupplies.com.au/' },
     'carterroofing': { name: 'Carter Roofing', url: '' },
     'skylightswest': { name: 'Skylights West', url: '' },
+    'steelroofing': { name: 'Steel Roofing Supply Centre', url: 'https://www.steelroofing.com.au/product-category/velux/', logo: '/steelroofing-logo.jpg' },
 };
 
 const LOGO_HEIGHTS: Record<string, string> = {
@@ -1797,10 +1799,10 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
                     <div className="flex-1 flex justify-start pl-4">
                         {dealerInfo?.url ? (
                             <a href={dealerInfo.url} target="_blank" rel="noopener noreferrer">
-                                <img src={`/${customerId}-logo.png?v=20260817_v3`} alt={partnerName} className={`${LOGO_HEIGHTS[customerId.toLowerCase()] || 'h-16'} object-contain`} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                                <img src={dealerInfo?.logo || `/${customerId}-logo.png?v=20260817_v3`} alt={partnerName} className={`${LOGO_HEIGHTS[customerId.toLowerCase()] || 'h-16'} object-contain`} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                             </a>
                         ) : (
-                            <img src={`/${customerId}-logo.png?v=20260817_v3`} alt={partnerName} className={`${LOGO_HEIGHTS[customerId.toLowerCase()] || 'h-16'} object-contain`} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                            <img src={dealerInfo?.logo || `/${customerId}-logo.png?v=20260817_v3`} alt={partnerName} className={`${LOGO_HEIGHTS[customerId.toLowerCase()] || 'h-16'} object-contain`} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                         )}
                     </div>
                 </div>
