@@ -110,7 +110,7 @@ const DEALER_INFO: Record<string, DealerInfo> = {
     'bowens': { name: 'Bowens', url: 'https://www.bowens.com.au/brands/velux/' },
     'dahlsens': { name: 'Dahlsens', url: 'https://www.dahlsens.com.au/skylights-roof-windows/' },
     'reece': { name: 'Reece', url: 'https://www.reece.com.au/' },
-    'peak': { name: 'Peak', url: '' },
+    'peak': { name: 'Peak Manufacturing', url: '' },
     'saskylights': { name: 'SA Skylights', url: '' },
     'vsky': { name: 'VSky', url: '' },
     'statewide': { name: 'Statewide', url: 'https://statewideroofingsupplies.com.au/' },
