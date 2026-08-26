@@ -107,7 +107,7 @@ const DEALER_INFO: Record<string, DealerInfo> = {
     'stratco': { name: 'Stratco', url: 'https://www.stratco.com.au/au/brands/velux/' },
     'mitre10': { name: 'Mitre 10', url: 'https://www.mitre10.com.au/catalog/category/view/s/velux/id/5809?perPage=24' },
     'hg': { name: 'Hardware & General', url: 'https://www.hg.com.au/velux/' },
-    'bowens': { name: 'Bowens', url: 'https://www.bowens.com.au/brands/velux/' },
+    'bowens': { name: 'Bowens', url: 'https://www.bowens.com.au/brands/velux/', logo: '/bowens-logo.jpg' },
     'dahlsens': { name: 'Dahlsens', url: 'https://www.dahlsens.com.au/skylights-roof-windows/' },
     'reece': { name: 'Reece', url: 'https://www.reece.com.au/' },
     'peak': { name: 'Peak Manufacturing', url: '' },
