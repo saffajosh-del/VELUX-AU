@@ -116,7 +116,7 @@ const DEALER_INFO: Record<string, DealerInfo> = {
     'statewide': { name: 'Statewide', url: 'https://statewideroofingsupplies.com.au/' },
     'carterroofing': { name: 'Carter Roofing', url: '' },
     'skylightswest': { name: 'Skylights West', url: '' },
-    'skylightswa': { name: 'Skylights WA', url: '', logo: '/skylightswa-logo.png' },
+    'skylightswa': { name: 'Skylights WA', url: 'https://www.skylightswa.com.au/', logo: '/skylightswa-logo.png' },
     'steelroofing': { name: 'Steel Roofing Supply Centre', url: 'https://www.steelroofing.com.au/product-category/velux/', logo: '/steelroofing-logo.jpg' },
 };
 
