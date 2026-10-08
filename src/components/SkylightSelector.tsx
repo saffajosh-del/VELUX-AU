@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { PRODUCTS, PITCHED_SIZES, FLAT_SIZES, ROOF_WINDOW_SIZES, FLASHINGS, BLINDS, ACCESSORIES } from '@/data/products';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Check, ArrowLeft, Printer } from 'lucide-react';
+import { Check, ArrowLeft, Printer, Plus, Minus, Trash2, ShoppingCart } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
@@ -133,9 +133,19 @@ interface SkylightSelectorProps {
 export default function SkylightSelector({ customerId = 'velux', customerMapping = null }: SkylightSelectorProps) {
     const dealerInfo = DEALER_INFO[customerId.toLowerCase()];
     const partnerName = dealerInfo?.name || (customerId !== 'velux' ? customerId.charAt(0).toUpperCase() + customerId.slice(1) : '');
+    const isBunnings = customerId.toLowerCase() === 'bunnings';
 
     const [step, setStep] = useState<StepId>('product-type');
     const [history, setHistory] = useState<StepId[]>([]);
+    const [cartReference] = useState(() => {
+        const chars = '0123456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+        let code = '';
+        for (let i = 0; i < 8; i++) {
+            code += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return `VLX-${code}`;
+    });
+    const [copiedCartLink, setCopiedCartLink] = useState(false);
     const [selection, setSelection] = useState<SelectionState>({
         productCategory: null,
         roofPitch: null,
@@ -152,10 +162,90 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
         selectedManualControl: null,
     });
 
+    interface SavedPackageItem {
+        veluxCode: string;
+        description: string;
+        quantity: number;
+        unitPrice: number;
+        totalPrice: number;
+        bunningsCode: string | null;
+        badgeText?: string;
+    }
+
+    interface SavedPackage {
+        id: string;
+        title: string;
+        categoryLabel: string;
+        sizeLabel: string;
+        image?: string;
+        totalPrice: number;
+        items: SavedPackageItem[];
+    }
+
+    const [savedPackages, setSavedPackages] = useState<SavedPackage[]>([]);
+    const [itemQuantities, setItemQuantities] = useState<Record<string, number>>({});
+
     // Helpers to move between steps
     const nextStep = (next: StepId) => {
         setHistory([...history, step]);
         setStep(next);
+    };
+
+    const resetCurrentSelection = () => {
+        setSelection({
+            productCategory: null,
+            roofPitch: null,
+            roofMaterial: null,
+            roofType: null,
+            openingType: null,
+            orientation: 'portrait',
+            trussSpacing: null,
+            sizeCode: null,
+            selectedProduct: null,
+            selectedBlind: null,
+            selectedInsectScreen: false,
+            selectedAddon: null,
+            selectedManualControl: null,
+        });
+        setItemQuantities({});
+        setHistory([]);
+    };
+
+    const handleAddAnotherSkylight = (currentPkg: SavedPackage) => {
+        setSavedPackages(prev => [...prev, currentPkg]);
+        resetCurrentSelection();
+        setStep('product-type');
+    };
+
+    const handleUpdateSavedItemQuantity = (pkgId: string, itemKey: string, newQty: number) => {
+        setSavedPackages(prev => prev.map(pkg => {
+            if (pkg.id === pkgId) {
+                const updatedItems = pkg.items.map(it => {
+                    const key = it.veluxCode;
+                    if (key === itemKey) {
+                        return {
+                            ...it,
+                            quantity: Math.max(0, newQty),
+                            totalPrice: it.unitPrice * Math.max(0, newQty),
+                        };
+                    }
+                    return it;
+                }).filter(it => it.quantity > 0);
+
+                const newTotal = updatedItems.reduce((sum, it) => sum + it.totalPrice, 0);
+
+                return {
+                    ...pkg,
+                    totalPrice: newTotal,
+                    items: updatedItems,
+                };
+            }
+            return pkg;
+        }).filter(pkg => pkg.items.length > 0));
+    };
+
+    const handleRemoveSavedPackage = (pkgId: string) => {
+        setSavedPackages(prev => prev.filter(pkg => pkg.id !== pkgId));
     };
 
     const backStep = () => {
@@ -249,17 +339,22 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
                 restricted.forEach(r => sizeSet.delete(r));
 
             } else {
-                // Pitched Roof Logic (Existing)
-                // 600mm -> Only 'C' series
-                // 900mm -> Only 'M' series
-                // 1200mm -> Only 'S' series
-
-                const allowedPrefix = selection.trussSpacing === 600 ? 'C' :
-                    selection.trussSpacing === 900 ? 'M' :
-                        'S';
-
-                const restricted = Array.from(sizeSet).filter(code => !code.startsWith(allowedPrefix));
-                restricted.forEach(r => sizeSet.delete(r));
+                // Pitched Roof Logic
+                if (selection.productCategory === 'roof-window') {
+                    // Roof Windows use CK, MK, SK
+                    const allowedPrefix = selection.trussSpacing === 600 ? 'CK' :
+                        selection.trussSpacing === 900 ? 'MK' :
+                            'SK';
+                    const restricted = Array.from(sizeSet).filter(code => !code.startsWith(allowedPrefix));
+                    restricted.forEach(r => sizeSet.delete(r));
+                } else {
+                    // Pitched Skylights (FS, VS, VSE, VSS) use C, M, S
+                    const allowedPrefix = selection.trussSpacing === 600 ? 'C' :
+                        selection.trussSpacing === 900 ? 'M' :
+                            'S';
+                    const restricted = Array.from(sizeSet).filter(code => !code.startsWith(allowedPrefix));
+                    restricted.forEach(r => sizeSet.delete(r));
+                }
             }
         }
 
@@ -1581,23 +1676,394 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
             }
         }
 
-        // Manual Controls Logic
-        let manualControlsPrice = 0;
-        if (selection.selectedManualControl) {
-            const id = selection.selectedManualControl;
-            if (id === 'zzz201') manualControlsPrice = (new Date() >= new Date('2026-08-01T00:00:00') ? 60 : 59);
-            if (id === 'zzz212') manualControlsPrice = (new Date() >= new Date('2026-08-01T00:00:00') ? 60 : 59);
-            if (id === 'zct300') manualControlsPrice = 99;
+        // Bunnings Cart Integration
+        const isBunnings = customerId.toLowerCase() === 'bunnings';
+        const isNZ = dealerInfo?.url?.includes('.co.nz') || (typeof window !== 'undefined' && window.location.hostname.includes('.co.nz'));
+        const retailBase = isNZ ? 'https://www.bunnings.co.nz' : 'https://www.bunnings.com.au';
+        const tradeBase = isNZ ? 'https://trade.bunnings.co.nz' : 'https://trade.bunnings.com.au';
+
+        const resolveBunningsCode = (code: string): string | null => {
+            if (!customerMapping) return null;
+            const cleanCode = code.trim().toUpperCase();
+            const mapped = customerMapping[cleanCode] || 
+                           customerMapping[`${cleanCode} B`] || 
+                           customerMapping[`${cleanCode}B`] || 
+                           customerMapping[cleanCode.replace(/\s*B$/, '')];
+            if (mapped && mapped !== 'Not Available' && mapped !== '#REF!' && !mapped.includes('No Fine Line')) {
+                const trimmed = mapped.trim();
+                return /^[A-Za-z0-9]+$/.test(trimmed) ? trimmed : null;
+            }
+            return null;
+        };
+
+        // Build line items for current configuration with individual quantity control
+        interface ConfigLineItem {
+            key: string;
+            veluxCode: string;
+            description: string;
+            subtext?: string;
+            unitPrice: number;
+            quantity: number;
+            totalPrice: number;
+            bunningsCode: string | null;
+            isRequiredMainProduct?: boolean;
+            warningText?: string;
         }
 
-        const total = basePrice + flashingPrice + blindPrice + accessoryPrice + screenPrice + addonPrice + manualControlsPrice;
+        const currentLineItems: ConfigLineItem[] = [];
+
+        // 1. Main Skylight / Window / Sun Tunnel
+        if (product) {
+            const code = isSunTunnel
+                ? `${product.id.toUpperCase()} ${product.id === 'tcr' ? sizeCode : (sizeCode === '014' ? '0K14' : sizeCode)}`
+                : `${product.model} ${sizeCode}`;
+            const key = `main-${code}`;
+            const qty = itemQuantities[key] ?? 1;
+            currentLineItems.push({
+                key,
+                veluxCode: code,
+                description: product.name.split('(')[0].trim(),
+                subtext: selection.productCategory === 'roof-window' ? 'Roof Window' : (isSunTunnel ? 'Sun Tunnel' : 'Skylight'),
+                unitPrice: basePrice,
+                quantity: qty,
+                totalPrice: basePrice * qty,
+                bunningsCode: resolveBunningsCode(code),
+                isRequiredMainProduct: true,
+            });
+        }
+
+        // 2. Blind
+        if (blind && blindPrice > 0) {
+            const code = `${blind.model} ${sizeCode}`;
+            const key = `blind-${code}`;
+            const qty = itemQuantities[key] ?? 1;
+            currentLineItems.push({
+                key,
+                veluxCode: code,
+                description: `${blind.name} Blind`,
+                subtext: 'Blind',
+                unitPrice: blindPrice,
+                quantity: qty,
+                totalPrice: blindPrice * qty,
+                bunningsCode: resolveBunningsCode(code),
+            });
+        }
+
+        // 3. Flashing (only if standard flashing)
+        if ((flashingPrice > 0 || flashingName.includes('Integrated')) && !flashingName.includes('Custom')) {
+            const match = flashingName.match(/^(ED[LW] [A-Z0-9]+)/);
+            if (match) {
+                const code = match[1];
+                const key = `flashing-${code}`;
+                const afterText = flashingName.substring(match[1].length).trim();
+                const qty = itemQuantities[key] ?? 1;
+                currentLineItems.push({
+                    key,
+                    veluxCode: code,
+                    description: flashingName.split('\n')[0],
+                    subtext: afterText || 'Flashing',
+                    unitPrice: flashingPrice,
+                    quantity: qty,
+                    totalPrice: flashingPrice * qty,
+                    bunningsCode: resolveBunningsCode(code),
+                });
+            }
+        }
+
+        // 4. Insect screen
+        if (selection.selectedInsectScreen && screenPrice > 0) {
+            const code = `ZIL ${zilSizeCode}`;
+            const key = `screen-${code}`;
+            const qty = itemQuantities[key] ?? 1;
+            currentLineItems.push({
+                key,
+                veluxCode: code,
+                description: 'Insect Screen',
+                subtext: 'Insect Screen',
+                unitPrice: screenPrice,
+                quantity: qty,
+                totalPrice: screenPrice * qty,
+                bunningsCode: resolveBunningsCode(code),
+            });
+        }
+
+        // 5. Sun tunnel extension addon
+        if (addonName && addonPrice > 0) {
+            const code = 'ZTR 0K14';
+            const key = `addon-${code}`;
+            const qty = itemQuantities[key] ?? 1;
+            currentLineItems.push({
+                key,
+                veluxCode: code,
+                description: addonName,
+                subtext: 'Extension',
+                unitPrice: addonPrice,
+                quantity: qty,
+                totalPrice: addonPrice * qty,
+                bunningsCode: resolveBunningsCode(code),
+            });
+        }
+
+        // 6. FCM Blind Tray
+        if (accessoryPrice > 0) {
+            const code = `ZZZ 199 ${sizeCode}`;
+            const key = `tray-${code}`;
+            const qty = itemQuantities[key] ?? 1;
+            currentLineItems.push({
+                key,
+                veluxCode: code,
+                description: 'Blind Tray',
+                subtext: 'Accessory',
+                unitPrice: accessoryPrice,
+                quantity: qty,
+                totalPrice: accessoryPrice * qty,
+                bunningsCode: resolveBunningsCode(code),
+            });
+        }
+
+        // 7. Manual Control
+        if (selection.selectedManualControl) {
+            const controlId = selection.selectedManualControl;
+            let code = '';
+            let name = '';
+            let price = 0;
+            if (controlId === 'zzz201') { code = 'ZZZ 201'; name = 'Winder Handle'; price = (new Date() >= new Date('2026-08-01T00:00:00') ? 60 : 59); }
+            if (controlId === 'zzz212') { code = 'ZZZ 212'; name = 'Winder Handle'; price = (new Date() >= new Date('2026-08-01T00:00:00') ? 60 : 59); }
+            if (controlId === 'zct300') { code = 'ZCT 300'; name = 'Extendable Rod Control'; price = (new Date() >= new Date('2026-08-01T00:00:00') ? 101 : 99); }
+            if (code) {
+                const key = `control-${code}`;
+                const qty = itemQuantities[key] ?? 1;
+                currentLineItems.push({
+                    key,
+                    veluxCode: code,
+                    description: name,
+                    subtext: 'Manual Control',
+                    unitPrice: price,
+                    quantity: qty,
+                    totalPrice: price * qty,
+                    bunningsCode: resolveBunningsCode(code),
+                });
+            }
+        }
+
+        const handleSetItemQty = (key: string, qty: number) => {
+            setItemQuantities(prev => ({
+                ...prev,
+                [key]: Math.max(0, qty),
+            }));
+        };
+
+        // Filter active items with quantity > 0
+        const activeCurrentLineItems = currentLineItems.filter(it => it.quantity > 0);
+        const currentPackageTotalPrice = currentLineItems.reduce((sum, it) => sum + it.totalPrice, 0);
+
+        // Convert current items for saving / cart transfer
+        const currentPackageProductTitle = isSunTunnel
+            ? `${product?.name.split('(')[0].trim()} - ${product?.id.toUpperCase()} ${product?.id === 'tcr' ? sizeCode : (sizeCode === '014' ? '0K14' : sizeCode)}`
+            : `${product?.name.split('(')[0].trim()} - ${product?.model} ${sizeCode}`;
+        const currentPackageCategory = selection.productCategory === 'roof-window'
+            ? 'Roof Window'
+            : (isSunTunnel ? 'Sun Tunnel' : 'Skylight');
+        const currentPackageSizeText = isSunTunnel
+            ? (product?.id === 'tcr' ? 'Up to 1150mm' : product?.id === 'twr' ? 'Up to 1700mm' : 'Up to 2000mm')
+            : (size ? `${size.label} mm` : sizeCode);
+
+        const currentPkgData: SavedPackage = {
+            id: `pkg-${Date.now()}`,
+            title: currentPackageProductTitle,
+            categoryLabel: currentPackageCategory,
+            sizeLabel: currentPackageSizeText,
+            image: product?.image,
+            totalPrice: currentPackageTotalPrice,
+            items: activeCurrentLineItems.map(it => ({
+                veluxCode: it.veluxCode,
+                description: it.description,
+                quantity: it.quantity,
+                unitPrice: it.unitPrice,
+                totalPrice: it.totalPrice,
+                bunningsCode: it.bunningsCode,
+            })),
+        };
+
+        // Combine all items across savedPackages AND the currently active configuration
+        const allProjectItems: { veluxCode: string; description: string; quantity: number; bunningsCode: string | null }[] = [
+            ...savedPackages.flatMap(p => p.items.map(it => ({
+                veluxCode: it.veluxCode,
+                description: it.description,
+                quantity: it.quantity,
+                bunningsCode: it.bunningsCode,
+            }))),
+            ...activeCurrentLineItems.map(it => ({
+                veluxCode: it.veluxCode,
+                description: it.description,
+                quantity: it.quantity,
+                bunningsCode: it.bunningsCode,
+            })),
+        ];
+
+        // Aggregate by bunningsCode for share-cart query
+        const aggregatedBunningsMap = new Map<string, { code: string; qty: number; veluxCode: string; description: string }>();
+        const aggregatedUnmappedItems: { veluxCode: string; description: string; quantity: number; bunningsCode: string | null }[] = [];
+
+        for (const it of allProjectItems) {
+            if (it.bunningsCode) {
+                const existing = aggregatedBunningsMap.get(it.bunningsCode);
+                if (existing) {
+                    existing.qty += it.quantity;
+                } else {
+                    aggregatedBunningsMap.set(it.bunningsCode, {
+                        code: it.bunningsCode,
+                        qty: it.quantity,
+                        veluxCode: it.veluxCode,
+                        description: it.description,
+                    });
+                }
+            } else {
+                aggregatedUnmappedItems.push(it);
+            }
+        }
+
+        const aggregatedBunningsList = Array.from(aggregatedBunningsMap.values());
+
+        const bunningsItemsQuery = aggregatedBunningsList
+            .map(item => `${item.code}:${item.qty}`)
+            .join(',');
+
+        const bunningsRetailUrl = bunningsItemsQuery
+            ? `${retailBase}/share-cart?items=${bunningsItemsQuery}&reference=${cartReference}&utm_source=velux&utm_medium=supplier&utm_campaign=planner&utm_content=website`
+            : '';
+
+        const bunningsTradeUrl = bunningsItemsQuery
+            ? `${tradeBase}/share-cart?items=${bunningsItemsQuery}&reference=${cartReference}&utm_source=velux&utm_medium=supplier&utm_campaign=planner&utm_content=website`
+            : '';
+
+        const bunningsEmailUrl = bunningsItemsQuery
+            ? `${retailBase}/share-cart?items=${bunningsItemsQuery}&reference=${cartReference}&utm_source=velux&utm_medium=supplier&utm_campaign=planner&utm_content=email`
+            : '';
+
+        const grandProjectTotal = currentPackageTotalPrice + savedPackages.reduce((sum, p) => sum + p.totalPrice, 0);
+        const totalItemsCount = allProjectItems.reduce((sum, it) => sum + it.quantity, 0);
+
+        const emailSubject = encodeURIComponent(`VELUX Skylight Selection - Bunnings Reference ${cartReference}`);
+        const emailBodyLines = [
+            `Hi,`,
+            ``,
+            `Here is your VELUX Skylight selection for Bunnings:`,
+            `Reference Number: ${cartReference}`,
+            `Total Project Estimate: $${grandProjectTotal}`,
+            ``,
+            `Items in Project:`,
+            ...allProjectItems.map(item => `- ${item.quantity}x ${item.description} (${item.veluxCode})${item.bunningsCode ? ` [Bunnings Item: ${item.bunningsCode}]` : ' (Order via Special Orders Desk)'}`),
+            ``,
+            ...(bunningsRetailUrl ? [`Checkout directly at Bunnings:`, bunningsEmailUrl, ``] : []),
+            ...(bunningsTradeUrl ? [`Checkout via Bunnings Trade (PowerPass):`, `${tradeBase}/share-cart?items=${bunningsItemsQuery}&reference=${cartReference}&utm_source=velux&utm_medium=supplier&utm_campaign=planner&utm_content=email`, ``] : []),
+            `Alternatively, quote reference number ${cartReference} at the Bunnings Special Orders desk.`,
+        ];
+        const mailtoHref = `mailto:?subject=${emailSubject}&body=${encodeURIComponent(emailBodyLines.join('\n'))}`;
+
+        const handleCopyCartLink = () => {
+            if (!bunningsRetailUrl) return;
+            navigator.clipboard.writeText(bunningsRetailUrl);
+            setCopiedCartLink(true);
+            setTimeout(() => setCopiedCartLink(false), 2500);
+        };
 
         return (
             <div className="space-y-6">
-                <div id="summary-card" className="bg-white p-8 rounded-xl border shadow-sm">
-                    <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-                        <Check className="w-6 h-6 text-green-600" /> Great Selection
-                    </h2>
+                {/* Previously Saved Skylights in Project (if any) */}
+                {savedPackages.length > 0 && (
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 md:p-6 mb-6">
+                        <div className="flex items-center justify-between pb-3 border-b border-slate-200 mb-4">
+                            <div className="flex items-center gap-2">
+                                <ShoppingCart className="w-5 h-5 text-primary" />
+                                <h3 className="text-base md:text-lg font-semibold text-slate-900">
+                                    Project Cart ({savedPackages.length} {savedPackages.length === 1 ? 'configuration' : 'configurations'} saved)
+                                </h3>
+                            </div>
+                            <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                Subtotal: ${savedPackages.reduce((sum, p) => sum + p.totalPrice, 0).toLocaleString()}
+                            </span>
+                        </div>
+
+                        <div className="space-y-4">
+                            {savedPackages.map((pkg, idx) => (
+                                <div key={pkg.id} className="bg-white p-4 rounded-lg border border-slate-200 space-y-3">
+                                    <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                                        <div className="flex items-center gap-2.5">
+                                            <span className="w-6 h-6 rounded-full bg-slate-100 text-slate-700 font-bold flex items-center justify-center text-xs">
+                                                #{idx + 1}
+                                            </span>
+                                            <div>
+                                                <span className="font-semibold text-slate-900 text-sm">{pkg.title}</span>
+                                                <span className="text-xs text-muted-foreground ml-2">({pkg.categoryLabel} &bull; {pkg.sizeLabel})</span>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <span className="font-bold text-slate-900 text-sm">
+                                                ${pkg.totalPrice.toLocaleString()}
+                                            </span>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleRemoveSavedPackage(pkg.id)}
+                                                className="text-slate-400 hover:text-red-600 transition-colors p-1"
+                                                title="Remove configuration"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Line items for saved package */}
+                                    <div className="divide-y divide-slate-100 pl-2">
+                                        {pkg.items.map((it) => (
+                                            <div key={it.veluxCode} className="py-1.5 flex items-center justify-between text-xs text-slate-700">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-medium">{it.description}</span>
+                                                    <span className="text-muted-foreground font-mono">({it.veluxCode})</span>
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    <div className="flex items-center border rounded bg-slate-50">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleUpdateSavedItemQuantity(pkg.id, it.veluxCode, it.quantity - 1)}
+                                                            className="px-1.5 py-0.5 text-slate-600 hover:bg-slate-200"
+                                                        >
+                                                            <Minus className="w-3 h-3" />
+                                                        </button>
+                                                        <span className="px-2 py-0.5 font-bold text-slate-900 bg-white">
+                                                            {it.quantity}
+                                                        </span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleUpdateSavedItemQuantity(pkg.id, it.veluxCode, it.quantity + 1)}
+                                                            className="px-1.5 py-0.5 text-slate-600 hover:bg-slate-200"
+                                                        >
+                                                            <Plus className="w-3 h-3" />
+                                                        </button>
+                                                    </div>
+                                                    <span className="min-w-[50px] text-right font-medium">
+                                                        ${it.totalPrice.toLocaleString()}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                <div id="summary-card" className="bg-white p-6 sm:p-8 rounded-xl border shadow-sm">
+                    <div className="mb-6 pb-4 border-b">
+                        <h2 className="text-2xl font-bold flex items-center gap-2">
+                            <Check className="w-6 h-6 text-green-600" />
+                            {savedPackages.length > 0 ? 'Current Skylight Configuration' : 'Great Selection'}
+                        </h2>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                            Customize quantities for each individual item below (e.g. adjust skylights, blinds, or accessories independently)
+                        </p>
+                    </div>
 
                     <div className="flex flex-col-reverse md:flex-row gap-8 items-start">
                         <div className="space-y-4 text-sm md:text-base flex-1 w-full">
@@ -1621,104 +2087,82 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
                                 )}
                             </div>
 
-                            {/* Itemized Costs */}
-                            <div className="py-4 space-y-4">
-                                <div className="flex justify-between text-sm items-start">
-                                    <div>
-                                        <div>{getPartnerCode(isSunTunnel ? `${product?.id.toUpperCase()} ${product?.id === 'tcr' ? sizeCode : (sizeCode === '014' ? '0K14' : sizeCode)}` : `${product?.model} ${sizeCode}`)}</div>
-                                        <div className="text-muted-foreground mt-0.5">{selection.productCategory === 'roof-window' ? 'Roof Window' : (isSunTunnel ? 'Sun Tunnel' : 'Skylight')}</div>
-                                    </div>
-                                    <span>${basePrice}</span>
+                            {/* Itemized Costs with Per-Item Quantity Stepper */}
+                            <div className="py-4 space-y-3">
+                                <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider pb-1 border-b">
+                                    Itemized Components &amp; Quantities
                                 </div>
-                                {blind && blindPrice > 0 && (
-                                    <div className="flex justify-between text-sm items-start">
-                                        <div>
-                                            <div>{getPartnerCode(`${blind.model} ${sizeCode}`)}</div>
-                                            <div className="text-muted-foreground mt-0.5">{blind.name} Blind</div>
-                                        </div>
-                                        <span>${blindPrice}</span>
-                                    </div>
-                                )}
-                                {(flashingPrice > 0 || flashingName.includes('Integrated')) && !flashingName.includes('Custom') && (
-                                    <div className="flex justify-between text-sm items-start">
-                                        <div>
-                                            {flashingName.split('\n').map((line, i) => {
-                                                const match = line.match(/^(ED[LW] [A-Z0-9]+)/);
-                                                if (match) {
-                                                    const afterText = line.substring(match[1].length).trim();
-                                                    return (
-                                                        <div key={i}>
-                                                            <div>{getPartnerCode(match[1])}</div>
-                                                            {afterText && <div className="text-muted-foreground font-normal mt-0.5">{afterText}</div>}
-                                                        </div>
-                                                    );
-                                                }
-                                                return <div key={i}>{line}</div>
-                                            })}
-                                        </div>
-                                        <span>{flashingPrice > 0 ? `$${flashingPrice}` : ''}</span>
-                                    </div>
-                                )}
-                                {selection.selectedInsectScreen && screenPrice > 0 && (
-                                    <div className="flex justify-between text-sm items-start">
-                                        <div>
-                                            <div>{getPartnerCode(`ZIL ${zilSizeCode}`)}</div>
-                                            <div className="text-muted-foreground mt-0.5">Insect Screen</div>
-                                        </div>
-                                        <span>${screenPrice}</span>
-                                    </div>
-                                )}
-                                {addonName && addonPrice > 0 && (
-                                    <div className="flex justify-between text-sm items-start">
-                                        <div>
-                                            <div>{getPartnerCode('ZTR 0K14')}</div>
-                                            <div className="text-muted-foreground mt-0.5">{addonName}</div>
-                                        </div>
-                                        <span>${addonPrice}</span>
-                                    </div>
-                                )}
-                                {accessoryPrice > 0 && (
-                                    <div className="flex justify-between text-sm items-start">
-                                        <div>
-                                            <div>{getPartnerCode(`ZZZ 199 ${sizeCode}`)}</div>
-                                            <div className="text-muted-foreground mt-0.5">Blind Tray</div>
-                                        </div>
-                                        <span>${accessoryPrice}</span>
-                                    </div>
-                                )}
-                                {selection.selectedManualControl && (() => {
-                                    const controlId = selection.selectedManualControl;
-                                    let code = '';
-                                    let name = '';
-                                    let price = 0;
-                                    if (controlId === 'zzz201') { code = 'ZZZ 201'; name = 'Winder Handle'; price = (new Date() >= new Date('2026-08-01T00:00:00') ? 60 : 59); }
-                                    if (controlId === 'zzz212') { code = 'ZZZ 212'; name = 'Winder Handle'; price = (new Date() >= new Date('2026-08-01T00:00:00') ? 60 : 59); }
-                                    if (controlId === 'zct300') { code = 'ZCT 300'; name = 'Extendable Rod Control'; price = (new Date() >= new Date('2026-08-01T00:00:00') ? 101 : 99) }
-                                    return (
-                                        <div key={controlId} className="flex justify-between text-sm items-start">
-                                            <div>
-                                                <div>{getPartnerCode(code)}</div>
-                                                <div className="text-muted-foreground mt-0.5">{name}</div>
+
+                                {currentLineItems.map((item) => (
+                                    <div key={item.key} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 rounded-lg border border-slate-100 hover:border-slate-200 transition-colors bg-white">
+                                        <div className="flex-1 min-w-0 pr-2">
+                                            <div className="font-medium text-slate-900 text-sm">
+                                                {getPartnerCode(item.veluxCode)}
                                             </div>
-                                            <span>${price}</span>
+                                            <div className="text-xs text-muted-foreground">
+                                                {item.description} {item.subtext && `(${item.subtext})`}
+                                            </div>
+                                            <div className="text-xs text-slate-500 mt-0.5">
+                                                ${item.unitPrice} each
+                                            </div>
                                         </div>
-                                    );
-                                })()}
+
+                                        <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+                                            {/* Quantity Stepper */}
+                                            <div className="flex items-center border border-slate-300 rounded-md overflow-hidden bg-white shadow-2xs">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleSetItemQty(item.key, item.quantity - 1)}
+                                                    disabled={item.isRequiredMainProduct ? item.quantity <= 1 : item.quantity <= 0}
+                                                    className="px-2 py-1 text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-white transition-colors"
+                                                    aria-label="Decrease quantity"
+                                                >
+                                                    <Minus className="w-3.5 h-3.5" />
+                                                </button>
+                                                <span className={`px-2.5 py-1 text-xs font-bold min-w-[28px] text-center ${item.quantity === 0 ? 'text-slate-400 bg-slate-50' : 'text-slate-900'}`}>
+                                                    {item.quantity}
+                                                </span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleSetItemQty(item.key, item.quantity + 1)}
+                                                    className="px-2 py-1 text-slate-600 hover:bg-slate-100 transition-colors"
+                                                    aria-label="Increase quantity"
+                                                >
+                                                    <Plus className="w-3.5 h-3.5" />
+                                                </button>
+                                            </div>
+
+                                            {/* Line Total */}
+                                            <span className={`min-w-[65px] text-right font-semibold text-sm ${item.quantity === 0 ? 'text-slate-400 line-through' : 'text-slate-900'}`}>
+                                                ${item.totalPrice}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))}
+
                                 {flashingName.includes('Custom') && (
-                                    <div className="flex justify-between text-sm items-start mt-2">
-                                        <div className="font-bold text-red-600">
-                                            {flashingName.split('\n').map((line, i) => (
-                                                <div key={i}>{line}</div>
-                                            ))}
-                                        </div>
+                                    <div className="p-2.5 bg-amber-50 rounded border border-amber-200 text-xs font-semibold text-amber-900 mt-2">
+                                        {flashingName.split('\n').map((line, i) => (
+                                            <div key={i}>{line}</div>
+                                        ))}
                                     </div>
                                 )}
                             </div>
 
-                            <div className="flex justify-between py-4 border-t border-b text-xl font-bold mt-4">
-                                <span>TOTAL ESTIMATE (RRP) (inc. gst)</span>
-                                <span className="text-primary">${total}</span>
+                            <div className="flex justify-between py-4 border-t border-b text-xl font-bold mt-2">
+                                <span>
+                                    {savedPackages.length > 0 ? 'CURRENT CONFIGURATION TOTAL' : 'TOTAL ESTIMATE (RRP) (inc. gst)'}
+                                </span>
+                                <span className="text-primary">${currentPackageTotalPrice.toLocaleString()}</span>
                             </div>
+
+                            {savedPackages.length > 0 && (
+                                <div className="flex justify-between py-3 bg-slate-900 text-white px-4 rounded-lg text-lg font-bold">
+                                    <span>GRAND TOTAL ({savedPackages.length + 1} Configurations &bull; {totalItemsCount} Items)</span>
+                                    <span className="text-green-400">${grandProjectTotal.toLocaleString()}</span>
+                                </div>
+                            )}
+
                             <p className="text-xs text-muted-foreground mt-2">* Does not include installation</p>
                             {product?.id === 'vse' && (
                                 <p className="text-xs text-red-600 mt-1">* Requires Certified Electrician</p>
@@ -1737,6 +2181,108 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
                             )}
                         </div>
                     </div>
+
+                    {/* Multi-Skylight Project Action Row */}
+                    <div className="mt-8 pt-6 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-50 p-4 rounded-lg">
+                        <div className="text-sm">
+                            <span className="font-semibold text-slate-800">Need multiple different skylights?</span>
+                            <p className="text-xs text-muted-foreground">Add this configuration to your project cart and configure another size or model.</p>
+                        </div>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => handleAddAnotherSkylight(currentPkgData)}
+                            className="w-full sm:w-auto border-primary text-primary hover:bg-primary/5 font-semibold flex items-center justify-center gap-2"
+                        >
+                            <Plus className="w-4 h-4" /> Add Another Skylight to Project
+                        </Button>
+                    </div>
+
+                    {/* Bunnings Third-Party Cart Checkout Card */}
+                    {isBunnings && (
+                        <div className="mt-8 bg-[#F5F5F5] border border-gray-200/70 rounded-none sm:rounded-[2px] p-6 sm:p-8 text-left">
+                            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 md:gap-8">
+                                <div className="flex-1 space-y-3">
+                                    <h3 className="text-[20px] sm:text-[22px] font-bold text-[#0D5257] tracking-tight leading-snug">
+                                        Order these products with the Bunnings website
+                                    </h3>
+                                    <p className="text-[14px] text-[#333333] leading-normal pt-1">
+                                        Or place an order at your local Bunnings at the Trade Desk. Stock availability depends on store or location.
+                                    </p>
+                                    <p className="text-[14px] text-[#333333] leading-normal">
+                                        PowerPass account required to checkout at Bunnings Trade. PowerPass pricing will be visible once logged in.
+                                    </p>
+                                    {totalItemsCount > 1 && (
+                                        <div className="inline-flex items-center gap-2 px-2.5 py-1 bg-white border border-gray-300 rounded text-xs font-semibold text-gray-800">
+                                            <ShoppingCart className="w-3.5 h-3.5 text-[#0D5257]" />
+                                            Cart transfers {aggregatedBunningsList.reduce((sum, i) => sum + i.qty, 0)} total Bunnings items across project
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="flex flex-col gap-3 shrink-0 items-center md:items-end w-full md:w-[280px]">
+                                    {aggregatedBunningsList.length > 0 ? (
+                                        <>
+                                            <a
+                                                href={bunningsRetailUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="w-full md:w-[280px] h-[50px] bg-[#DA291C] hover:bg-[#c22418] flex items-center justify-center transition-all overflow-hidden shadow-2xs hover:opacity-95 active:scale-[0.99]"
+                                            >
+                                                <img
+                                                    src="/bunnings-checkout-button.png"
+                                                    alt="Checkout at Bunnings"
+                                                    className="h-[50px] w-[280px] object-cover"
+                                                />
+                                            </a>
+                                            <a
+                                                href={bunningsTradeUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="w-full md:w-[280px] h-[50px] bg-[#FFAB00] hover:bg-[#e09700] flex items-center justify-center transition-all overflow-hidden shadow-2xs hover:opacity-95 active:scale-[0.99]"
+                                            >
+                                                <img
+                                                    src="/bunnings-trade-checkout-button.png"
+                                                    alt="Checkout at Bunnings Trade"
+                                                    className="h-[50px] w-[280px] object-cover"
+                                                />
+                                            </a>
+                                        </>
+                                    ) : (
+                                        <div className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded p-3 text-center w-full">
+                                            Online cart transfer is unavailable for this configuration. Please quote reference <strong className="font-mono">{cartReference}</strong> at the Bunnings Trade Desk.
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Unmapped warning note if needed */}
+                            {aggregatedUnmappedItems.length > 0 && (
+                                <div className="mt-4 p-2.5 bg-amber-50 border border-amber-200 rounded text-xs text-amber-800">
+                                    <strong>Note:</strong> Some selected items ({Array.from(new Set(aggregatedUnmappedItems.map(i => i.veluxCode))).join(', ')}) cannot be transferred online and must be ordered at the Bunnings Trade Desk.
+                                </div>
+                            )}
+
+                            {/* Subtle secondary utilities */}
+                            <div className="mt-4 pt-3 border-t border-gray-200/60 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground no-print">
+                                <span>PO Reference: <code className="font-mono font-semibold text-gray-700">{cartReference}</code></span>
+                                <div className="flex items-center gap-3">
+                                    <a href={mailtoHref} className="hover:text-foreground underline transition-colors">
+                                        Email Shopping List
+                                    </a>
+                                    {bunningsRetailUrl && (
+                                        <button
+                                            type="button"
+                                            onClick={handleCopyCartLink}
+                                            className="hover:text-foreground underline cursor-pointer transition-colors"
+                                        >
+                                            {copiedCartLink ? '✓ Copied cart link' : 'Copy cart link'}
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {customerId.toLowerCase() === 'no1' && dealerInfo && (
                         <div className="mt-8 pt-6 border-t border-gray-100 text-center no-print">
@@ -1787,7 +2333,7 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
 
 
     return (
-        <div className="max-w-2xl mx-auto w-full min-h-screen py-10 px-4 flex flex-col font-sans">
+        <div className={`${step === 'summary' && isBunnings ? 'max-w-4xl' : 'max-w-2xl'} mx-auto w-full min-h-screen py-10 px-4 flex flex-col font-sans transition-all duration-300`}>
             {/* Header - Minimalist */}
             {(customerId !== 'velux') ? (
                 <div className="mb-12 flex justify-center items-center w-full">
@@ -1822,12 +2368,27 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
                 animate={{ opacity: 1, y: 0 }}
                 className="mb-8"
             >
-                {/* Back Button */}
-                {step !== 'product-type' && (
-                    <Button variant="ghost" className="mb-4 pl-0 hover:bg-transparent text-muted-foreground hover:text-foreground" onClick={backStep}>
-                        <ArrowLeft className="w-4 h-4 mr-2" /> Back
-                    </Button>
-                )}
+                {/* Back Button & Cart Pill Row */}
+                <div className="flex items-center justify-between mb-4">
+                    {step !== 'product-type' ? (
+                        <Button variant="ghost" className="pl-0 hover:bg-transparent text-muted-foreground hover:text-foreground" onClick={backStep}>
+                            <ArrowLeft className="w-4 h-4 mr-2" /> Back
+                        </Button>
+                    ) : <div />}
+
+                    {savedPackages.length > 0 && step !== 'summary' && (
+                        <button
+                            type="button"
+                            onClick={() => setStep('summary')}
+                            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900 text-white text-xs font-semibold shadow hover:bg-slate-800 transition-colors cursor-pointer"
+                        >
+                            <ShoppingCart className="w-3.5 h-3.5 text-primary" />
+                            <span>Project Cart: {savedPackages.reduce((sum, p) => sum + p.items.reduce((s, it) => s + it.quantity, 0), 0)} items</span>
+                            <span className="text-slate-400">&bull;</span>
+                            <span className="text-green-400">${savedPackages.reduce((sum, p) => sum + p.totalPrice, 0).toLocaleString()}</span>
+                        </button>
+                    )}
+                </div>
 
                 <h1 className="text-3xl font-light text-gray-900 mb-2">{currentTitle()}</h1>
                 <div className="h-1 w-20 bg-primary mb-6"></div>
