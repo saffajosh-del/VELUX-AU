@@ -1572,23 +1572,41 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
                                customerMapping[`${cleanCode} B`] || 
                                customerMapping[`${cleanCode}B`] || 
                                customerMapping[cleanCode.replace(/\s*B$/, '')];
+                const prefix = isBunnings ? 'I/N ' : '';
                 if (mapped && mapped !== 'Not Available' && mapped !== '#REF!') {
                     return (
                         <>
-                            <strong className="font-extrabold">{mapped}</strong>
+                            <strong className="font-extrabold">{prefix}{mapped}</strong>
                             {blockLayout ? <span className="block mt-1 text-sm font-normal text-muted-foreground whitespace-nowrap">({code})</span> : ` (${code})`}
                         </>
                     );
                 } else {
                     return (
                         <>
-                            <strong className="font-bold italic text-amber-600">(No Fine Line)</strong>
+                            <strong className="font-bold italic text-amber-600">{isBunnings ? 'I/N (No Fine Line)' : '(No Fine Line)'}</strong>
                             {blockLayout ? <span className="block mt-1 text-sm font-normal text-muted-foreground whitespace-nowrap">({code})</span> : ` (${code})`}
                         </>
                     );
                 }
             }
             return code;
+        };
+
+        const getLineItemPartnerCode = (code: string) => {
+            if (customerId !== 'velux' && customerMapping && Object.keys(customerMapping).length > 0) {
+                const cleanCode = code.trim().toUpperCase();
+                const mapped = customerMapping[cleanCode] || 
+                               customerMapping[`${cleanCode} B`] || 
+                               customerMapping[`${cleanCode}B`] || 
+                               customerMapping[cleanCode.replace(/\s*B$/, '')];
+                const prefix = isBunnings ? 'I/N ' : '';
+                if (mapped && mapped !== 'Not Available' && mapped !== '#REF!') {
+                    return `${prefix}${mapped} (${code})`;
+                } else {
+                    return isBunnings ? `I/N (No Fine Line) (${code})` : `(No Fine Line) (${code})`;
+                }
+            }
+            return `(${code})`;
         };
 
         const product = PRODUCTS.find(p => p.id === selection.selectedProduct);
@@ -1747,10 +1765,11 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
             const code = `${blind.model} ${sizeCode}`;
             const key = `blind-${code}`;
             const qty = itemQuantities[key] ?? 1;
+            const blindTitle = `${blind.name} ${blind.subtitle || ''} Blind`.replace(/\s+/g, ' ').trim();
             currentLineItems.push({
                 key,
                 veluxCode: code,
-                description: `${blind.name} Blind`,
+                description: blindTitle,
                 subtext: 'Blind',
                 unitPrice: blindPrice,
                 quantity: qty,
@@ -1767,10 +1786,11 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
                 const key = `flashing-${code}`;
                 const afterText = flashingName.substring(match[1].length).trim();
                 const qty = itemQuantities[key] ?? 1;
+                const cleanFlashingTitle = flashingName.split('\n')[0].replace(new RegExp(`\\s+${sizeCode}\\b`, 'g'), '').trim();
                 currentLineItems.push({
                     key,
                     veluxCode: code,
-                    description: flashingName.split('\n')[0],
+                    description: cleanFlashingTitle,
                     subtext: afterText || 'Flashing',
                     unitPrice: flashingPrice,
                     quantity: qty,
@@ -2028,8 +2048,10 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
                                         {pkg.items.map((it) => (
                                             <div key={it.veluxCode} className="py-1.5 flex items-center justify-between text-xs text-slate-700">
                                                 <div className="flex items-center gap-2">
-                                                    <span className="font-medium">{it.description}</span>
-                                                    <span className="text-muted-foreground font-mono">({it.veluxCode})</span>
+                                                    <span className="font-semibold text-slate-900">{it.description}</span>
+                                                    <span className="text-muted-foreground">
+                                                        {isBunnings && it.bunningsCode ? `I/N ${it.bunningsCode} (${it.veluxCode})` : `(${it.veluxCode})`}
+                                                    </span>
                                                 </div>
                                                 <div className="flex items-center gap-3">
                                                     <div className="flex items-center border rounded bg-slate-50">
@@ -2106,12 +2128,15 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
                                 {currentLineItems.map((item) => (
                                     <div key={item.key} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 rounded-lg border border-slate-100 hover:border-slate-200 transition-colors bg-white">
                                         <div className="flex-1 min-w-0 pr-2">
-                                            <div className="font-medium text-slate-900 text-sm">
-                                                {getPartnerCode(item.veluxCode)}
+                                            {/* Line 1: Item description in bold */}
+                                            <div className="font-bold text-slate-900 text-sm">
+                                                {item.description}
                                             </div>
-                                            <div className="text-xs text-muted-foreground">
-                                                {item.description} {item.subtext && `(${item.subtext})`}
+                                            {/* Line 2: I/N with official VELUX code (not bold) */}
+                                            <div className="text-xs text-muted-foreground font-normal mt-0.5">
+                                                {getLineItemPartnerCode(item.veluxCode)}
                                             </div>
+                                            {/* Line 3: Unit price */}
                                             <div className="text-xs text-slate-500 mt-0.5">
                                                 ${item.unitPrice} each
                                             </div>
