@@ -319,8 +319,12 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
             p.compatibleSizes.forEach(s => sizeSet.add(s));
         });
 
-        if (selection.trussSpacing && selection.trussSpacing !== 'unsure') {
-            if (isFlatRoof) {
+        const numTruss = typeof selection.trussSpacing === 'string' && selection.trussSpacing !== 'unsure'
+            ? parseInt(selection.trussSpacing, 10)
+            : selection.trussSpacing;
+
+        if (numTruss && numTruss !== 'unsure') {
+            if (isFlatRoof && selection.productCategory !== 'roof-window') {
                 // Flat Roof Logic: Filter by Overall Curb Width
                 // 600mm -> 14xx (460mm) and 22xx (665mm) logic roughly, or use code prefix
                 // data.md:
@@ -331,9 +335,9 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
                 // 46xx (1275 wide) -> 1200 truss
 
                 let validPrefixes: string[] = [];
-                if (selection.trussSpacing === 600) validPrefixes = ['14', '22'];
-                else if (selection.trussSpacing === 900) validPrefixes = ['30', '34'];
-                else if (selection.trussSpacing === 1200) validPrefixes = ['46'];
+                if (numTruss === 600) validPrefixes = ['14', '22'];
+                else if (numTruss === 900) validPrefixes = ['30', '34'];
+                else if (numTruss === 1200) validPrefixes = ['46'];
 
                 const restricted = Array.from(sizeSet).filter(code => !validPrefixes.some(pre => code.startsWith(pre)));
                 restricted.forEach(r => sizeSet.delete(r));
@@ -342,15 +346,15 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
                 // Pitched Roof Logic
                 if (selection.productCategory === 'roof-window') {
                     // Roof Windows use CK, MK, SK
-                    const allowedPrefix = selection.trussSpacing === 600 ? 'CK' :
-                        selection.trussSpacing === 900 ? 'MK' :
+                    const allowedPrefix = numTruss === 600 ? 'CK' :
+                        numTruss === 900 ? 'MK' :
                             'SK';
                     const restricted = Array.from(sizeSet).filter(code => !code.startsWith(allowedPrefix));
                     restricted.forEach(r => sizeSet.delete(r));
                 } else {
                     // Pitched Skylights (FS, VS, VSE, VSS) use C, M, S
-                    const allowedPrefix = selection.trussSpacing === 600 ? 'C' :
-                        selection.trussSpacing === 900 ? 'M' :
+                    const allowedPrefix = numTruss === 600 ? 'C' :
+                        numTruss === 900 ? 'M' :
                             'S';
                     const restricted = Array.from(sizeSet).filter(code => !code.startsWith(allowedPrefix));
                     restricted.forEach(r => sizeSet.delete(r));
@@ -375,24 +379,13 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
         }
 
         if (selection.productCategory === 'roof-window') {
-            // Filter Roof Windows based on truss spacing if set
-            // MK series -> 780mm width -> Fits 900mm spacing
-            // SK series -> 1140mm width -> Fits 1200mm spacing
-            // CK series -> 550mm width -> Fits 600mm spacing
-            const sizes = ROOF_WINDOW_SIZES.filter(s => sizeSet.has(s.code));
-
-            if (selection.trussSpacing && selection.trussSpacing !== 'unsure') {
-                const allowedPrefix = selection.trussSpacing === 600 ? 'C' :
-                    selection.trussSpacing === 900 ? 'M' :
-                        'S';
-                return sizes.filter(s => s.code.startsWith(allowedPrefix + 'K')); // e.g. CK, MK, SK
-            }
-            return sizes;
+            // Return all roof window sizes matching the compatible set
+            return ROOF_WINDOW_SIZES.filter(s => sizeSet.has(s.code));
         }
 
         const sizes = isFlatRoof ? FLAT_SIZES : PITCHED_SIZES;
         return sizes.filter(s => sizeSet.has(s.code));
-    }, [validProducts, isFlatRoof, selection.orientation, selection.trussSpacing]);
+    }, [validProducts, isFlatRoof, selection.orientation, selection.trussSpacing, selection.productCategory]);
 
 
     // ----------------------------------------------------------------------------
@@ -454,6 +447,11 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
                 }
             }
         } else if (selection.productCategory === 'roof-window') {
+            setSelection(prev => ({
+                ...prev,
+                roofPitch: 'pitched',
+                roofType: prev.roofType === 'flat' ? 'tiled' : (prev.roofType || 'tiled'),
+            }));
             nextStep('roof-window-model');
         } else {
             // Skylight flow
@@ -470,7 +468,7 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
                 ...prev,
                 roofMaterial: id as any,
                 roofType: mappedType,
-                roofPitch: null,
+                roofPitch: prev.productCategory === 'roof-window' ? 'pitched' : null,
                 openingType: null,
                 trussSpacing: null,
                 sizeCode: null,
@@ -480,7 +478,11 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
                 selectedAddon: null,
             };
         });
-        nextStep('pitch');
+        if (selection.productCategory === 'roof-window') {
+            nextStep('roof-window-model');
+        } else {
+            nextStep('pitch');
+        }
     };
 
     const handleSunTunnelTypeSelect = (type: 'rigid' | 'flexible') => {
@@ -503,6 +505,8 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
             return {
                 ...prev,
                 selectedProduct: model,
+                roofPitch: 'pitched',
+                roofType: prev.roofType === 'flat' ? 'tiled' : (prev.roofType || 'tiled'),
                 trussSpacing: null,
                 sizeCode: null,
                 selectedBlind: null,
@@ -535,7 +539,7 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
                 ...prev,
                 trussSpacing: spacing,
                 sizeCode: null,
-                selectedProduct: null,
+                selectedProduct: prev.productCategory === 'roof-window' ? prev.selectedProduct : null,
                 selectedBlind: null,
                 selectedManualControl: null,
             };
@@ -1184,17 +1188,22 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
                                             const price = product.prices[code];
 
                                             return (
-                                                <Card key={code} className="hover:border-primary/50 transition-all">
+                                                <Card 
+                                                    key={code} 
+                                                    className="hover:border-primary transition-all cursor-pointer hover:shadow-md group"
+                                                    onClick={() => handleSizeSelect(code)}
+                                                >
                                                     <CardContent className="p-4">
                                                         <div className="flex justify-between items-start mb-2">
-                                                            <span className="font-bold text-lg">{code}</span>
+                                                            <span className="font-bold text-lg group-hover:text-primary transition-colors">{code}</span>
                                                             <span className="font-bold text-primary">${price}</span>
                                                         </div>
                                                         <div className="text-sm text-muted-foreground mb-1">
                                                             {sizeObj.label} mm
                                                         </div>
-                                                        <div className="text-xs text-muted-foreground">
-                                                            {product.model} {code}
+                                                        <div className="text-xs text-muted-foreground flex justify-between items-center">
+                                                            <span>{product.model} {code}</span>
+                                                            <span className="text-primary font-medium group-hover:underline">Select &rarr;</span>
                                                         </div>
                                                     </CardContent>
                                                 </Card>
@@ -1311,7 +1320,8 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
 
     const renderBlindsStep = () => {
         // Filter blinds based on selected product model
-        const product = PRODUCTS.find(p => p.id === selection.selectedProduct);
+        const fallbackId = selection.productCategory === 'roof-window' ? 'ggl' : 'fs';
+        const product = PRODUCTS.find(p => p.id === (selection.selectedProduct || fallbackId));
         if (!product) return null;
 
         // Separate Blinds (Darkening/Translucent) and Accessories (Screens)
