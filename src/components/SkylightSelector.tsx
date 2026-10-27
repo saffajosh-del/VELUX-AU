@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { PRODUCTS, PITCHED_SIZES, FLAT_SIZES, ROOF_WINDOW_SIZES, FLASHINGS, BLINDS, ACCESSORIES } from '@/data/products';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Check, ArrowLeft, Printer } from 'lucide-react';
+import { Check, ArrowLeft, Printer, Plus, Minus } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
@@ -35,11 +35,13 @@ const PRODUCT_TYPE_OPTIONS = [
     {
         id: 'skylight',
         label: 'Skylight',
+        subLabel: 'Out Of Reach',
         icon: <img src="/skylight-icon.png" alt="Skylight" className="w-16 h-16 object-contain" />
     },
     {
         id: 'roof-window',
         label: 'Roof Window',
+        subLabel: 'Within Reach',
         icon: <img src="/roof-window-icon.png" alt="Roof Window" className="w-16 h-16 object-contain" />
     },
     {
@@ -133,9 +135,11 @@ interface SkylightSelectorProps {
 export default function SkylightSelector({ customerId = 'velux', customerMapping = null }: SkylightSelectorProps) {
     const dealerInfo = DEALER_INFO[customerId.toLowerCase()];
     const partnerName = dealerInfo?.name || (customerId !== 'velux' ? customerId.charAt(0).toUpperCase() + customerId.slice(1) : '');
+    const isBunnings = customerId.toLowerCase() === 'bunnings';
 
     const [step, setStep] = useState<StepId>('product-type');
     const [history, setHistory] = useState<StepId[]>([]);
+    const [itemQuantities, setItemQuantities] = useState<Record<string, number>>({});
     const [selection, setSelection] = useState<SelectionState>({
         productCategory: null,
         roofPitch: null,
@@ -229,50 +233,41 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
             p.compatibleSizes.forEach(s => sizeSet.add(s));
         });
 
-        if (selection.trussSpacing && selection.trussSpacing !== 'unsure') {
-            if (isFlatRoof) {
-                // Flat Roof Logic: Filter by Overall Curb Width
-                // 600mm -> 14xx (460mm) and 22xx (665mm) logic roughly, or use code prefix
-                // data.md:
-                // 1430 (460 wide) -> 600 truss (exception)
-                // 22xx (665 wide) -> 600 truss
-                // 30xx (870 wide) -> 900 truss
-                // 34xx (970 wide) -> 900 truss
-                // 46xx (1275 wide) -> 1200 truss
+        const numTruss = typeof selection.trussSpacing === 'string' && selection.trussSpacing !== 'unsure'
+            ? parseInt(selection.trussSpacing, 10)
+            : selection.trussSpacing;
 
+        if (numTruss && numTruss !== 'unsure') {
+            if (isFlatRoof && selection.productCategory !== 'roof-window') {
+                // Flat Roof Logic: Filter by Overall Curb Width
                 let validPrefixes: string[] = [];
-                if (selection.trussSpacing === 600) validPrefixes = ['14', '22'];
-                else if (selection.trussSpacing === 900) validPrefixes = ['30', '34'];
-                else if (selection.trussSpacing === 1200) validPrefixes = ['46'];
+                if (numTruss === 600) validPrefixes = ['14', '22'];
+                else if (numTruss === 900) validPrefixes = ['30', '34'];
+                else if (numTruss === 1200) validPrefixes = ['46'];
 
                 const restricted = Array.from(sizeSet).filter(code => !validPrefixes.some(pre => code.startsWith(pre)));
                 restricted.forEach(r => sizeSet.delete(r));
 
             } else {
-                // Pitched Roof Logic (Existing)
-                // 600mm -> Only 'C' series
-                // 900mm -> Only 'M' series
-                // 1200mm -> Only 'S' series
+                // Pitched Roof Logic
+                if (selection.productCategory === 'roof-window') {
+                    // Roof Windows use CK, MK, SK
+                    const allowedPrefix = numTruss === 600 ? 'CK' :
+                        numTruss === 900 ? 'MK' :
+                            'SK';
+                    const restricted = Array.from(sizeSet).filter(code => !code.startsWith(allowedPrefix));
+                    restricted.forEach(r => sizeSet.delete(r));
+                } else {
+                    // Pitched Skylights (FS, VS, VSE, VSS) use C, M, S
+                    const allowedPrefix = numTruss === 600 ? 'C' :
+                        numTruss === 900 ? 'M' :
+                            'S';
 
-                const allowedPrefix = selection.trussSpacing === 600 ? 'C' :
-                    selection.trussSpacing === 900 ? 'M' :
-                        'S';
-
-                const restricted = Array.from(sizeSet).filter(code => !code.startsWith(allowedPrefix));
-                restricted.forEach(r => sizeSet.delete(r));
+                    const restricted = Array.from(sizeSet).filter(code => !code.startsWith(allowedPrefix));
+                    restricted.forEach(r => sizeSet.delete(r));
+                }
             }
         }
-
-        // Orientation Logic (Pitched only rule from PRD: FCM 2270 / 3072 / 4672 landscape constrained?)
-        // PRD say: "Removes restricted sizes (e.g. FCM 2270 / 3072 / 4672 landscape)"
-        // Actually the PRD says: "Removes restricted sizes (e.g. FCM 2270 / 3072 / 4672 landscape)"
-        // Wait, FCM is Flat Roof.
-        // Step 4 is Roof Pitch / Orientation *if applicable*. 
-        // Usually Flat roof (FCM) is installed on a curb. 
-        // If user says "Landscape", we might exclude some tall sizes?
-        // Let's implement the logic: If Landscape, exclude FCM 2270, 3072, 4672 if they are "Portrait only" designs?
-        // Actually, usually 2270 is 572x1792. It's very tall. If you install it landscape 1792x572, maybe it's fine?
-        // PRD explicitly says so. So we filter them out if Landscape.
 
         if (selection.orientation === 'landscape') {
             const restricted = ['2270', '3072', '4672'];
@@ -280,24 +275,12 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
         }
 
         if (selection.productCategory === 'roof-window') {
-            // Filter Roof Windows based on truss spacing if set
-            // MK series -> 780mm width -> Fits 900mm spacing
-            // SK series -> 1140mm width -> Fits 1200mm spacing
-            // CK series -> 550mm width -> Fits 600mm spacing
-            const sizes = ROOF_WINDOW_SIZES.filter(s => sizeSet.has(s.code));
-
-            if (selection.trussSpacing && selection.trussSpacing !== 'unsure') {
-                const allowedPrefix = selection.trussSpacing === 600 ? 'C' :
-                    selection.trussSpacing === 900 ? 'M' :
-                        'S';
-                return sizes.filter(s => s.code.startsWith(allowedPrefix + 'K')); // e.g. CK, MK, SK
-            }
-            return sizes;
+            return ROOF_WINDOW_SIZES.filter(s => sizeSet.has(s.code));
         }
 
         const sizes = isFlatRoof ? FLAT_SIZES : PITCHED_SIZES;
         return sizes.filter(s => sizeSet.has(s.code));
-    }, [validProducts, isFlatRoof, selection.orientation, selection.trussSpacing]);
+    }, [validProducts, isFlatRoof, selection.orientation, selection.trussSpacing, selection.productCategory]);
 
 
     // ----------------------------------------------------------------------------
@@ -305,6 +288,7 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
     // ----------------------------------------------------------------------------
 
     const handleProductTypeSelect = (id: string) => {
+        setItemQuantities({});
         setSelection(prev => {
             if (prev.productCategory === id) return prev;
             return {
@@ -375,7 +359,7 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
                 ...prev,
                 roofMaterial: id as any,
                 roofType: mappedType,
-                roofPitch: null,
+                roofPitch: prev.productCategory === 'roof-window' ? 'pitched' : null,
                 openingType: null,
                 trussSpacing: null,
                 sizeCode: null,
@@ -385,7 +369,11 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
                 selectedAddon: null,
             };
         });
-        nextStep('pitch');
+        if (selection.productCategory === 'roof-window') {
+            nextStep('roof-window-model');
+        } else {
+            nextStep('pitch');
+        }
     };
 
     const handleSunTunnelTypeSelect = (type: 'rigid' | 'flexible') => {
@@ -408,9 +396,12 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
             return {
                 ...prev,
                 selectedProduct: model,
+                roofPitch: 'pitched',
+                roofType: prev.roofType === 'flat' ? 'tiled' : (prev.roofType || 'tiled'),
                 trussSpacing: null,
                 sizeCode: null,
                 selectedBlind: null,
+                selectedInsectScreen: false,
             };
         });
         nextStep('truss');
@@ -440,7 +431,7 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
                 ...prev,
                 trussSpacing: spacing,
                 sizeCode: null,
-                selectedProduct: null,
+                selectedProduct: prev.productCategory === 'roof-window' ? prev.selectedProduct : null,
                 selectedBlind: null,
                 selectedManualControl: null,
             };
@@ -603,6 +594,11 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
                 >
                     <span className="mb-6 grayscale group-hover:grayscale-0 transition-all">{opt.icon}</span>
                     <span className="text-xl font-bold text-foreground text-center">{opt.label}</span>
+                    {opt.subLabel && (
+                        <span className="text-sm italic text-muted-foreground mt-1 text-center">
+                            {opt.subLabel}
+                        </span>
+                    )}
                 </button>
             ))}
         </div>
@@ -1089,17 +1085,22 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
                                             const price = product.prices[code];
 
                                             return (
-                                                <Card key={code} className="hover:border-primary/50 transition-all">
+                                                <Card 
+                                                    key={code} 
+                                                    className="hover:border-primary transition-all cursor-pointer hover:shadow-md group"
+                                                    onClick={() => handleSizeSelect(code)}
+                                                >
                                                     <CardContent className="p-4">
                                                         <div className="flex justify-between items-start mb-2">
-                                                            <span className="font-bold text-lg">{code}</span>
+                                                            <span className="font-bold text-lg group-hover:text-primary transition-colors">{code}</span>
                                                             <span className="font-bold text-primary">${price}</span>
                                                         </div>
                                                         <div className="text-sm text-muted-foreground mb-1">
                                                             {sizeObj.label} mm
                                                         </div>
-                                                        <div className="text-xs text-muted-foreground">
-                                                            {product.model} {code}
+                                                        <div className="text-xs text-muted-foreground flex justify-between items-center">
+                                                            <span>{product.model} {code}</span>
+                                                            <span className="text-primary font-medium group-hover:underline">Select &rarr;</span>
                                                         </div>
                                                     </CardContent>
                                                 </Card>
@@ -1216,7 +1217,8 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
 
     const renderBlindsStep = () => {
         // Filter blinds based on selected product model
-        const product = PRODUCTS.find(p => p.id === selection.selectedProduct);
+        const fallbackId = selection.productCategory === 'roof-window' ? 'ggl' : 'fs';
+        const product = PRODUCTS.find(p => p.id === (selection.selectedProduct || fallbackId));
         if (!product) return null;
 
         // Separate Blinds (Darkening/Translucent) and Accessories (Screens)
@@ -1467,23 +1469,41 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
                                customerMapping[`${cleanCode} B`] || 
                                customerMapping[`${cleanCode}B`] || 
                                customerMapping[cleanCode.replace(/\s*B$/, '')];
+                const prefix = isBunnings ? 'I/N ' : '';
                 if (mapped && mapped !== 'Not Available' && mapped !== '#REF!') {
                     return (
                         <>
-                            <strong className="font-extrabold">{mapped}</strong>
+                            <strong className="font-extrabold">{prefix}{mapped}</strong>
                             {blockLayout ? <span className="block mt-1 text-sm font-normal text-muted-foreground whitespace-nowrap">({code})</span> : ` (${code})`}
                         </>
                     );
                 } else {
                     return (
                         <>
-                            <strong className="font-bold italic text-amber-600">(No Fine Line)</strong>
+                            <strong className="font-bold italic text-amber-600">{isBunnings ? 'I/N (No Fine Line)' : '(No Fine Line)'}</strong>
                             {blockLayout ? <span className="block mt-1 text-sm font-normal text-muted-foreground whitespace-nowrap">({code})</span> : ` (${code})`}
                         </>
                     );
                 }
             }
             return code;
+        };
+
+        const getLineItemPartnerCode = (code: string) => {
+            if (customerId !== 'velux' && customerMapping && Object.keys(customerMapping).length > 0) {
+                const cleanCode = code.trim().toUpperCase();
+                const mapped = customerMapping[cleanCode] || 
+                               customerMapping[`${cleanCode} B`] || 
+                               customerMapping[`${cleanCode}B`] || 
+                               customerMapping[cleanCode.replace(/\s*B$/, '')];
+                const prefix = isBunnings ? 'I/N ' : '';
+                if (mapped && mapped !== 'Not Available' && mapped !== '#REF!') {
+                    return `${prefix}${mapped} (${code})`;
+                } else {
+                    return isBunnings ? `I/N (No Fine Line) (${code})` : `(No Fine Line) (${code})`;
+                }
+            }
+            return `(${code})`;
         };
 
         const product = PRODUCTS.find(p => p.id === selection.selectedProduct);
@@ -1583,21 +1603,169 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
 
         // Manual Controls Logic
         let manualControlsPrice = 0;
+        let manualControlCode = '';
+        let manualControlName = '';
         if (selection.selectedManualControl) {
             const id = selection.selectedManualControl;
-            if (id === 'zzz201') manualControlsPrice = (new Date() >= new Date('2026-08-01T00:00:00') ? 60 : 59);
-            if (id === 'zzz212') manualControlsPrice = (new Date() >= new Date('2026-08-01T00:00:00') ? 60 : 59);
-            if (id === 'zct300') manualControlsPrice = 99;
+            if (id === 'zzz201') { manualControlCode = 'ZZZ 201'; manualControlName = 'Winder Handle'; manualControlsPrice = (new Date() >= new Date('2026-08-01T00:00:00') ? 60 : 59); }
+            if (id === 'zzz212') { manualControlCode = 'ZZZ 212'; manualControlName = 'Winder Handle'; manualControlsPrice = (new Date() >= new Date('2026-08-01T00:00:00') ? 60 : 59); }
+            if (id === 'zct300') { manualControlCode = 'ZCT 300'; manualControlName = 'Extendable Rod Control'; manualControlsPrice = (new Date() >= new Date('2026-08-01T00:00:00') ? 101 : 99); }
         }
 
-        const total = basePrice + flashingPrice + blindPrice + accessoryPrice + screenPrice + addonPrice + manualControlsPrice;
+        // Build line items for current configuration with individual quantity control
+        interface ConfigLineItem {
+            key: string;
+            veluxCode: string;
+            description: string;
+            subtext?: string;
+            unitPrice: number;
+            quantity: number;
+            totalPrice: number;
+            isRequiredMainProduct?: boolean;
+        }
+
+        const currentLineItems: ConfigLineItem[] = [];
+
+        // 1. Main Skylight / Window / Sun Tunnel
+        if (product) {
+            const code = isSunTunnel
+                ? `${product.id.toUpperCase()} ${product.id === 'tcr' ? sizeCode : (sizeCode === '014' ? '0K14' : sizeCode)}`
+                : `${product.model} ${sizeCode}`;
+            const key = `main-${code}`;
+            const qty = itemQuantities[key] ?? 1;
+            currentLineItems.push({
+                key,
+                veluxCode: code,
+                description: product.name.split('(')[0].trim(),
+                subtext: selection.productCategory === 'roof-window' ? 'Roof Window' : (isSunTunnel ? 'Sun Tunnel' : 'Skylight'),
+                unitPrice: basePrice,
+                quantity: qty,
+                totalPrice: basePrice * qty,
+                isRequiredMainProduct: true,
+            });
+        }
+
+        // 2. Blind
+        if (blind && blindPrice > 0) {
+            const code = `${blind.model} ${sizeCode}`;
+            const key = `blind-${code}`;
+            const qty = itemQuantities[key] ?? 1;
+            const blindTitle = `${blind.name} ${blind.subtitle || ''} Blind`.replace(/\s+/g, ' ').trim();
+            currentLineItems.push({
+                key,
+                veluxCode: code,
+                description: blindTitle,
+                subtext: 'Blind',
+                unitPrice: blindPrice,
+                quantity: qty,
+                totalPrice: blindPrice * qty,
+            });
+        }
+
+        // 3. Flashing (only if standard flashing)
+        if ((flashingPrice > 0 || flashingName.includes('Integrated')) && !flashingName.includes('Custom')) {
+            const match = flashingName.match(/^(ED[LW] [A-Z0-9]+)/);
+            if (match) {
+                const code = match[1];
+                const key = `flashing-${code}`;
+                const afterText = flashingName.substring(match[1].length).trim();
+                const qty = itemQuantities[key] ?? 1;
+                const cleanFlashingTitle = flashingName.split('\n')[0].replace(new RegExp(`\\s+${sizeCode}\\b`, 'g'), '').trim();
+                currentLineItems.push({
+                    key,
+                    veluxCode: code,
+                    description: cleanFlashingTitle,
+                    subtext: afterText || 'Flashing',
+                    unitPrice: flashingPrice,
+                    quantity: qty,
+                    totalPrice: flashingPrice * qty,
+                });
+            }
+        }
+
+        // 4. Insect screen
+        if (selection.selectedInsectScreen && screenPrice > 0) {
+            const code = `ZIL ${zilSizeCode}`;
+            const key = `screen-${code}`;
+            const qty = itemQuantities[key] ?? 1;
+            currentLineItems.push({
+                key,
+                veluxCode: code,
+                description: 'Insect Screen',
+                subtext: 'Insect Screen',
+                unitPrice: screenPrice,
+                quantity: qty,
+                totalPrice: screenPrice * qty,
+            });
+        }
+
+        // 5. Sun tunnel extension addon
+        if (addonName && addonPrice > 0) {
+            const code = 'ZTR 0K14';
+            const key = `addon-${code}`;
+            const qty = itemQuantities[key] ?? 1;
+            currentLineItems.push({
+                key,
+                veluxCode: code,
+                description: addonName,
+                subtext: 'Extension',
+                unitPrice: addonPrice,
+                quantity: qty,
+                totalPrice: addonPrice * qty,
+            });
+        }
+
+        // 6. FCM Blind Tray
+        if (accessoryPrice > 0) {
+            const code = `ZZZ 199 ${sizeCode}`;
+            const key = `tray-${code}`;
+            const qty = itemQuantities[key] ?? 1;
+            currentLineItems.push({
+                key,
+                veluxCode: code,
+                description: 'Blind Tray',
+                subtext: 'Accessory',
+                unitPrice: accessoryPrice,
+                quantity: qty,
+                totalPrice: accessoryPrice * qty,
+            });
+        }
+
+        // 7. Manual Control
+        if (manualControlCode && manualControlsPrice > 0) {
+            const key = `control-${manualControlCode}`;
+            const qty = itemQuantities[key] ?? 1;
+            currentLineItems.push({
+                key,
+                veluxCode: manualControlCode,
+                description: manualControlName,
+                subtext: 'Manual Control',
+                unitPrice: manualControlsPrice,
+                quantity: qty,
+                totalPrice: manualControlsPrice * qty,
+            });
+        }
+
+        const handleSetItemQty = (key: string, qty: number) => {
+            setItemQuantities(prev => ({
+                ...prev,
+                [key]: Math.max(0, qty),
+            }));
+        };
+
+        const total = currentLineItems.reduce((sum, it) => sum + it.totalPrice, 0);
 
         return (
             <div className="space-y-6">
-                <div id="summary-card" className="bg-white p-8 rounded-xl border shadow-sm">
-                    <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-                        <Check className="w-6 h-6 text-green-600" /> Great Selection
-                    </h2>
+                <div id="summary-card" className="bg-white p-6 sm:p-8 rounded-xl border shadow-sm">
+                    <div className="mb-6 pb-4 border-b">
+                        <h2 className="text-2xl font-bold flex items-center gap-2">
+                            <Check className="w-6 h-6 text-green-600" /> Great Selection
+                        </h2>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                            Customize quantities for each individual item below (e.g. adjust skylights, blinds, or accessories independently)
+                        </p>
+                    </div>
 
                     <div className="flex flex-col-reverse md:flex-row gap-8 items-start">
                         <div className="space-y-4 text-sm md:text-base flex-1 w-full">
@@ -1621,103 +1789,74 @@ export default function SkylightSelector({ customerId = 'velux', customerMapping
                                 )}
                             </div>
 
-                            {/* Itemized Costs */}
-                            <div className="py-4 space-y-4">
-                                <div className="flex justify-between text-sm items-start">
-                                    <div>
-                                        <div>{getPartnerCode(isSunTunnel ? `${product?.id.toUpperCase()} ${product?.id === 'tcr' ? sizeCode : (sizeCode === '014' ? '0K14' : sizeCode)}` : `${product?.model} ${sizeCode}`)}</div>
-                                        <div className="text-muted-foreground mt-0.5">{selection.productCategory === 'roof-window' ? 'Roof Window' : (isSunTunnel ? 'Sun Tunnel' : 'Skylight')}</div>
-                                    </div>
-                                    <span>${basePrice}</span>
+                            {/* Itemized Components & Quantities with Stepper */}
+                            <div className="py-4 space-y-3">
+                                <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider pb-1 border-b">
+                                    Itemized Components &amp; Quantities
                                 </div>
-                                {blind && blindPrice > 0 && (
-                                    <div className="flex justify-between text-sm items-start">
-                                        <div>
-                                            <div>{getPartnerCode(`${blind.model} ${sizeCode}`)}</div>
-                                            <div className="text-muted-foreground mt-0.5">{blind.name} Blind</div>
-                                        </div>
-                                        <span>${blindPrice}</span>
-                                    </div>
-                                )}
-                                {(flashingPrice > 0 || flashingName.includes('Integrated')) && !flashingName.includes('Custom') && (
-                                    <div className="flex justify-between text-sm items-start">
-                                        <div>
-                                            {flashingName.split('\n').map((line, i) => {
-                                                const match = line.match(/^(ED[LW] [A-Z0-9]+)/);
-                                                if (match) {
-                                                    const afterText = line.substring(match[1].length).trim();
-                                                    return (
-                                                        <div key={i}>
-                                                            <div>{getPartnerCode(match[1])}</div>
-                                                            {afterText && <div className="text-muted-foreground font-normal mt-0.5">{afterText}</div>}
-                                                        </div>
-                                                    );
-                                                }
-                                                return <div key={i}>{line}</div>
-                                            })}
-                                        </div>
-                                        <span>{flashingPrice > 0 ? `$${flashingPrice}` : ''}</span>
-                                    </div>
-                                )}
-                                {selection.selectedInsectScreen && screenPrice > 0 && (
-                                    <div className="flex justify-between text-sm items-start">
-                                        <div>
-                                            <div>{getPartnerCode(`ZIL ${zilSizeCode}`)}</div>
-                                            <div className="text-muted-foreground mt-0.5">Insect Screen</div>
-                                        </div>
-                                        <span>${screenPrice}</span>
-                                    </div>
-                                )}
-                                {addonName && addonPrice > 0 && (
-                                    <div className="flex justify-between text-sm items-start">
-                                        <div>
-                                            <div>{getPartnerCode('ZTR 0K14')}</div>
-                                            <div className="text-muted-foreground mt-0.5">{addonName}</div>
-                                        </div>
-                                        <span>${addonPrice}</span>
-                                    </div>
-                                )}
-                                {accessoryPrice > 0 && (
-                                    <div className="flex justify-between text-sm items-start">
-                                        <div>
-                                            <div>{getPartnerCode(`ZZZ 199 ${sizeCode}`)}</div>
-                                            <div className="text-muted-foreground mt-0.5">Blind Tray</div>
-                                        </div>
-                                        <span>${accessoryPrice}</span>
-                                    </div>
-                                )}
-                                {selection.selectedManualControl && (() => {
-                                    const controlId = selection.selectedManualControl;
-                                    let code = '';
-                                    let name = '';
-                                    let price = 0;
-                                    if (controlId === 'zzz201') { code = 'ZZZ 201'; name = 'Winder Handle'; price = (new Date() >= new Date('2026-08-01T00:00:00') ? 60 : 59); }
-                                    if (controlId === 'zzz212') { code = 'ZZZ 212'; name = 'Winder Handle'; price = (new Date() >= new Date('2026-08-01T00:00:00') ? 60 : 59); }
-                                    if (controlId === 'zct300') { code = 'ZCT 300'; name = 'Extendable Rod Control'; price = (new Date() >= new Date('2026-08-01T00:00:00') ? 101 : 99) }
-                                    return (
-                                        <div key={controlId} className="flex justify-between text-sm items-start">
-                                            <div>
-                                                <div>{getPartnerCode(code)}</div>
-                                                <div className="text-muted-foreground mt-0.5">{name}</div>
+
+                                {currentLineItems.map((item) => (
+                                    <div key={item.key} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 rounded-lg border border-slate-100 hover:border-slate-200 transition-colors bg-white">
+                                        <div className="flex-1 min-w-0 pr-2">
+                                            {/* Line 1: Item description in bold */}
+                                            <div className="font-bold text-slate-900 text-sm">
+                                                {item.description}
                                             </div>
-                                            <span>${price}</span>
+                                            {/* Line 2: I/N or partner code with official VELUX code (not bold) */}
+                                            <div className="text-xs text-muted-foreground font-normal mt-0.5">
+                                                {getLineItemPartnerCode(item.veluxCode)}
+                                            </div>
+                                            {/* Line 3: Unit price */}
+                                            <div className="text-xs text-slate-500 mt-0.5">
+                                                ${item.unitPrice} each
+                                            </div>
                                         </div>
-                                    );
-                                })()}
+
+                                        <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+                                            {/* Quantity Stepper */}
+                                            <div className="flex items-center border border-slate-300 rounded-md overflow-hidden bg-white shadow-2xs">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleSetItemQty(item.key, item.quantity - 1)}
+                                                    disabled={item.isRequiredMainProduct ? item.quantity <= 1 : item.quantity <= 0}
+                                                    className="px-2 py-1 text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-white transition-colors cursor-pointer"
+                                                    aria-label="Decrease quantity"
+                                                >
+                                                    <Minus className="w-3.5 h-3.5" />
+                                                </button>
+                                                <span className={`px-2.5 py-1 text-xs font-bold min-w-[28px] text-center ${item.quantity === 0 ? 'text-slate-400 bg-slate-50' : 'text-slate-900'}`}>
+                                                    {item.quantity}
+                                                </span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleSetItemQty(item.key, item.quantity + 1)}
+                                                    className="px-2 py-1 text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                                                    aria-label="Increase quantity"
+                                                >
+                                                    <Plus className="w-3.5 h-3.5" />
+                                                </button>
+                                            </div>
+
+                                            {/* Line Total */}
+                                            <span className={`min-w-[65px] text-right font-semibold text-sm ${item.quantity === 0 ? 'text-slate-400 line-through' : 'text-slate-900'}`}>
+                                                ${item.totalPrice}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))}
+
                                 {flashingName.includes('Custom') && (
-                                    <div className="flex justify-between text-sm items-start mt-2">
-                                        <div className="font-bold text-red-600">
-                                            {flashingName.split('\n').map((line, i) => (
-                                                <div key={i}>{line}</div>
-                                            ))}
-                                        </div>
+                                    <div className="p-2.5 bg-amber-50 rounded border border-amber-200 text-xs font-semibold text-amber-900 mt-2">
+                                        {flashingName.split('\n').map((line, i) => (
+                                            <div key={i}>{line}</div>
+                                        ))}
                                     </div>
                                 )}
                             </div>
 
-                            <div className="flex justify-between py-4 border-t border-b text-xl font-bold mt-4">
+                            <div className="flex justify-between py-4 border-t border-b text-xl font-bold mt-2">
                                 <span>TOTAL ESTIMATE (RRP) (inc. gst)</span>
-                                <span className="text-primary">${total}</span>
+                                <span className="text-primary">${total.toLocaleString()}</span>
                             </div>
                             <p className="text-xs text-muted-foreground mt-2">* Does not include installation</p>
                             {product?.id === 'vse' && (
