@@ -491,7 +491,10 @@ export default function ArchitectSelector() {
                                                     roofPitch: null,
                                                     openingType: null,
                                                     sizeCode: null,
-                                                    selectedProduct: null
+                                                    selectedProduct: null,
+                                                    selectedBlind: null,
+                                                    selectedInsectScreen: false,
+                                                    selectedAccessories: []
                                                 });
                                             }}
                                             className={`p-5 rounded-xl border text-center flex flex-col items-center justify-start transition-all min-h-[170px] hover:shadow-sm ${
@@ -559,7 +562,10 @@ export default function ArchitectSelector() {
                                                         roofPitch: pitch.id as any,
                                                         openingType: null,
                                                         sizeCode: null,
-                                                        selectedProduct: null
+                                                        selectedProduct: null,
+                                                        selectedBlind: null,
+                                                        selectedInsectScreen: false,
+                                                        selectedAccessories: []
                                                     });
                                                 }}
                                                 className={`p-5 rounded-xl border text-left flex flex-col justify-between transition-all min-h-[130px] hover:shadow-sm ${
@@ -616,7 +622,10 @@ export default function ArchitectSelector() {
                                                         ...selection,
                                                         openingType: op.id as any,
                                                         selectedProduct: prod,
-                                                        sizeCode: null
+                                                        sizeCode: null,
+                                                        selectedBlind: null,
+                                                        selectedInsectScreen: false,
+                                                        selectedAccessories: []
                                                     });
                                                 }}
                                                 className={`p-4 rounded-xl border text-left flex flex-col justify-between transition-all min-h-[100px] ${
@@ -693,7 +702,10 @@ export default function ArchitectSelector() {
                                                             setSelection({
                                                                 ...selection,
                                                                 selectedProduct: prod,
-                                                                sizeCode: st.sizeCode
+                                                                sizeCode: st.sizeCode,
+                                                                selectedBlind: null,
+                                                                selectedInsectScreen: false,
+                                                                selectedAccessories: []
                                                             });
                                                         }}
                                                         className={`p-4 rounded-xl border text-center transition-all flex flex-col justify-center items-center min-h-[110px] ${
@@ -744,7 +756,10 @@ export default function ArchitectSelector() {
                                                                     setSelection({
                                                                         ...selection,
                                                                         selectedProduct: prod,
-                                                                        sizeCode: item.code
+                                                                        sizeCode: item.code,
+                                                                        selectedBlind: null,
+                                                                        selectedInsectScreen: false,
+                                                                        selectedAccessories: []
                                                                     });
                                                                 }}
                                                                 className={`p-3 rounded-lg border text-center transition-all flex flex-col justify-center items-center ${
@@ -794,7 +809,10 @@ export default function ArchitectSelector() {
                                                                     setSelection({
                                                                         ...selection,
                                                                         selectedProduct: prod,
-                                                                        sizeCode: item.code
+                                                                        sizeCode: item.code,
+                                                                        selectedBlind: null,
+                                                                        selectedInsectScreen: false,
+                                                                        selectedAccessories: []
                                                                     });
                                                                 }}
                                                                 className={`p-3 rounded-lg border text-center transition-all flex flex-col justify-center items-center ${
@@ -828,7 +846,10 @@ export default function ArchitectSelector() {
                                                         onClick={() => {
                                                             setSelection({
                                                                 ...selection,
-                                                                sizeCode: sz.code
+                                                                sizeCode: sz.code,
+                                                                selectedBlind: null,
+                                                                selectedInsectScreen: false,
+                                                                selectedAccessories: []
                                                             });
                                                         }}
                                                         className={`p-3 rounded-lg border text-center transition-all flex flex-col justify-center items-center ${
